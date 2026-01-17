@@ -63,7 +63,14 @@ func getLocalIP() string {
  */
 func createBareRepo(cwd string) (string, string, error) {
 	repoName := filepath.Base(cwd) + ".git"
-	baseDir := filepath.Join(os.TempDir(), "gitport")
+	configDir, err := os.UserConfigDir()
+
+	if err != nil {
+		log.Error("Couldn't find user config directory", "error", err)
+		return "", "", err
+	}
+
+	baseDir := filepath.Join(configDir, "gitport")
 	barePath := filepath.Join(baseDir, repoName)
 
 	// 1. Ensure the base directory exists
