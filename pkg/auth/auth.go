@@ -62,15 +62,15 @@ func AuthHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	if !exist {
 		username := ctx.User() + "@" + ctx.RemoteAddr().String()
 
-		if logger.Config["public"] != "true" {
+		if !logger.Config.Public {
 			logger.Logger.Warn("Unauthorized user tried to connect", "key", username)
 			return false
 		}
 
 		logger.Logger.Info("New user connecting", "user", username)
 
-		perms, exists := logger.Config["default_perm"]
-		if !exists {
+		perms := logger.Config.DefaultPerm
+		if perms == "" {
 			logger.Logger.Error("No default permissions in file", "file", logger.Conf)
 			perms = "none"
 		}

@@ -36,24 +36,19 @@ func InitConfig() error {
 		if os.IsNotExist(err) {
 			logger.Logger.Warn("File not found, creating default config", "file", logger.Conf)
 
-			logger.Config = make(map[string]string)
 			var input string
 
 			fmt.Print("Do you want the server to be public (allow guest users)? (y/n): ")
 			fmt.Scan(&input)
-			if input == "y" {
-				logger.Config["public"] = "true"
-			} else {
-				logger.Config["public"] = "false"
-			}
+			logger.Config.Public = (input == "y")
 
 			fmt.Print("What is the default permission of users (none, read, write, admin): ")
 			fmt.Scan(&input)
 			switch input {
 			case "read", "write", "admin":
-				logger.Config["default_perm"] = input
+				logger.Config.DefaultPerm = input
 			default:
-				logger.Config["default_perm"] = "none"
+				logger.Config.DefaultPerm = "none"
 			}
 
 			file, err := os.Create(filepath.Join(logger.WorkDir, logger.Conf))

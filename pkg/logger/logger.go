@@ -14,8 +14,13 @@ const (
 	Conf  = "config.json"
 )
 
+type ConfigData struct {
+	Public      bool   `json:"public"`
+	DefaultPerm string `json:"default_perm"`
+}
+
 var WorkDir string
-var Config = make(map[string]string)
+var Config ConfigData
 
 type MultiLogger struct {
 	FileLogger *log.Logger
