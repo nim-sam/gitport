@@ -3,7 +3,6 @@ package logger
 import (
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/muesli/termenv"
@@ -29,8 +28,15 @@ var Logger = MultiLogger{
 }
 
 func InitTermLogger() {
+	// Set global defaults for all loggers (including middleware)
+	log.SetFormatter(log.TextFormatter)
+	log.SetTimeFormat("2006-01-02 15:04:05")
+	log.SetReportTimestamp(true)
+
+	// Apply settings to our terminal logger instance
 	Logger.TermLogger.SetFormatter(log.TextFormatter)
-	Logger.TermLogger.SetTimeFormat(time.RFC3339)
+	Logger.TermLogger.SetTimeFormat("2006-01-02 15:04:05")
+	Logger.TermLogger.SetReportTimestamp(true)
 	Logger.TermLogger.SetColorProfile(termenv.TrueColor)
 }
 
@@ -41,13 +47,10 @@ func InitFileLogs() *os.File {
 		return nil
 	}
 
-	Logger = MultiLogger{
-		log.New(file),
-		log.New(os.Stdout),
-	}
-
+	Logger.FileLogger = log.New(file)
 	Logger.FileLogger.SetFormatter(log.JSONFormatter)
-	Logger.FileLogger.SetTimeFormat(time.RFC3339)
+	Logger.FileLogger.SetTimeFormat("2006-01-02 15:04:05")
+	Logger.FileLogger.SetReportTimestamp(true)
 
 	return file
 }
