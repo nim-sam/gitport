@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	Logs  = "logs.json"
+	Logs  = "logs.txt"
 	Users = "users.json"
 	Conf  = "config.json"
 )
@@ -48,7 +48,7 @@ func InitFileLogs() *os.File {
 	}
 
 	Logger.FileLogger = log.New(file)
-	Logger.FileLogger.SetFormatter(log.JSONFormatter)
+	Logger.FileLogger.SetFormatter(log.TextFormatter)
 	Logger.FileLogger.SetTimeFormat("2006-01-02 15:04:05")
 	Logger.FileLogger.SetReportTimestamp(true)
 

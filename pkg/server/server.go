@@ -30,39 +30,33 @@ const (
 	dir = ".gitport"
 )
 
-var workDir string
-
-// CONFIG
-
-var config = logger.Config
-
 func InitConfig() error {
-	file, err := os.Open(filepath.Join(workDir, logger.Conf))
+	file, err := os.Open(filepath.Join(logger.WorkDir, logger.Conf))
 	if err != nil {
 		if os.IsNotExist(err) {
 			logger.Logger.Warn("File not found, creating default config", "file", logger.Conf)
 
-			config = make(map[string]string)
+			logger.Config = make(map[string]string)
 			var input string
 
 			fmt.Print("Do you want the server to be public (allow guest users)? (y/n): ")
 			fmt.Scan(&input)
 			if input == "y" {
-				config["public"] = "true"
+				logger.Config["public"] = "true"
 			} else {
-				config["public"] = "false"
+				logger.Config["public"] = "false"
 			}
 
 			fmt.Print("What is the default permission of users (none, read, write, admin): ")
 			fmt.Scan(&input)
 			switch input {
 			case "read", "write", "admin":
-				config["default_perm"] = input
+				logger.Config["default_perm"] = input
 			default:
-				config["default_perm"] = "none"
+				logger.Config["default_perm"] = "none"
 			}
 
-			file, err := os.Create(filepath.Join(workDir, logger.Conf))
+			file, err := os.Create(filepath.Join(logger.WorkDir, logger.Conf))
 			if err != nil {
 				return err
 			}
@@ -70,7 +64,7 @@ func InitConfig() error {
 
 			encoder := json.NewEncoder(file)
 			encoder.SetIndent("", "    ")
-			err = encoder.Encode(config)
+			err = encoder.Encode(logger.Config)
 			if err != nil {
 				return err
 			}
@@ -87,7 +81,7 @@ func InitConfig() error {
 		return err
 	}
 
-	err = json.Unmarshal(bytes, &config)
+	err = json.Unmarshal(bytes, &logger.Config)
 	if err != nil {
 		return err
 	}
@@ -166,8 +160,7 @@ func createBareRepo(cwd string) (string, string, error) {
 
 	baseDir := filepath.Join(configDir, "gitport")
 	barePath := filepath.Join(baseDir, repoName)
-	workDir = filepath.Join(barePath, dir)
-	logger.WorkDir = workDir
+	logger.WorkDir = filepath.Join(barePath, dir)
 
 	// 1. Ensure the base directory exists
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
@@ -207,7 +200,7 @@ func gitService(port string, cwd string) {
 	}
 
 	// Setup .gitport
-	if err := os.MkdirAll(workDir, 0755); err != nil {
+	if err := os.MkdirAll(logger.WorkDir, 0755); err != nil {
 		logger.Logger.Error("Failed to create .gitport", "error", err)
 		return
 	}
@@ -246,9 +239,10 @@ func gitService(port string, cwd string) {
 	// GitHooks implementation to allow global read write access
 	h := Hook{repoName}
 
+	hostKeyPath := filepath.Join(logger.WorkDir, ".ssh", "id_ed25519")
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort("0.0.0.0", port)),
-		wish.WithHostKeyPath(".ssh/id_ed25519"),
+		wish.WithHostKeyPath(hostKeyPath),
 		wish.WithPublicKeyAuth(auth.AuthHandler),
 		wish.WithMiddleware(
 			git.Middleware(repoDir, h),
