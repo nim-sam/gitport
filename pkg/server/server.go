@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -153,6 +154,14 @@ func gitService(port string, cwd string) {
 	log.Info("Starting GitPort server", "repo", repoName, "URI", fullUri)
 
 	go func() {
+		// 1. Wait a moment for the server to bind the port and start listening
+		time.Sleep(1 * time.Second)
+
+		// 2. Configure the local repo to talk to the server
+		configureLocalGit(fullUri)
+	}()
+
+	go func() {
 		if err = s.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
 			log.Error("Could not start GitPort server", "error", err)
 			done <- nil
@@ -217,6 +226,46 @@ func ContainsFile(d []os.DirEntry, name string) bool {
 		}
 	}
 	return false
+}
+
+// configureLocalGit sets the remote 'origin' and configures the upstream branch
+func configureLocalGit(uri string) {
+	log.Info("Configuring local git remote...", "uri", uri)
+
+	// 1. Set the remote 'origin' to our new server URI
+	// We try to set-url first (in case it exists), if that fails, we add it.
+	if err := exec.Command("git", "remote", "set-url", "origin", uri).Run(); err != nil {
+		if err := exec.Command("git", "remote", "add", "origin", uri).Run(); err != nil {
+			log.Error("Failed to set git remote", "error", err)
+			return
+		}
+	}
+
+	// 2. Fetch from the remote to ensure we see the refs
+	// This requires the SSH server to be up and running!
+	if err := exec.Command("git", "fetch", "origin").Run(); err != nil {
+		log.Error("Failed to fetch from origin. Is the server reachable?", "error", err)
+		return
+	}
+
+	// 3. Determine current branch name
+	// We need to know which branch to associate with the upstream
+	out, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	if err != nil {
+		log.Error("Failed to get current branch", "error", err)
+		return
+	}
+	currentBranch := strings.TrimSpace(string(out))
+
+	// 4. Set the upstream (tracking) information
+	// This allows you to run 'git pull' and 'git push' without arguments
+	upstream := fmt.Sprintf("origin/%s", currentBranch)
+	if err := exec.Command("git", "branch", "--set-upstream-to="+upstream, currentBranch).Run(); err != nil {
+		log.Error("Failed to set upstream branch", "error", err)
+		return
+	}
+
+	log.Info("Git remote configured successfully. You can now use 'git push' and 'git pull'.")
 }
 
 /**
