@@ -56,14 +56,20 @@ func (m commitModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 
-		case "enter", "tab":
-			if !m.focus {
-				m.focus = true
-				m.list.SetDelegate(commitDelegate{listFocused: false})
-				return m, nil
-			}
+		case "enter":
+			// 1. Toggle the focus boolean
+			m.focus = !m.focus
+
+			// 2. Sync the delegate's state to match
+			// When m.focus is true, listFocused should be false
+			m.list.SetDelegate(commitDelegate{listFocused: !m.focus})
+
+			// 3. Return nil to prevent the "enter" key from
+			// triggering the list's default "select" behavior
+			return m, nil
 
 		case "esc":
+			// Always return to the list on Esc
 			if m.focus {
 				m.focus = false
 				m.list.SetDelegate(commitDelegate{listFocused: true})
@@ -72,21 +78,18 @@ func (m commitModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		//h, _ := docStyle.GetFrameSize()
+		targetHeight := 16
 
-		// Set a fixed height for inline mode (e.g., 20 lines)
-		// Or use msg.Height if you want it to fill the view without clearing it
-		targetHeight := 20
+		// Width logic remains the same
+		listWidth := msg.Width/2 - 4
+		viewWidth := msg.Width - listWidth - 8
 
-		listWidth := msg.Width / 5
-		viewWidth := msg.Width - listWidth - 45
-
-		// Update List
 		m.list.SetSize(listWidth, targetHeight)
 
-		// Update Viewport
+		// The viewport internal height MUST be targetHeight - 2
+		// so it doesn't try to render 16 lines inside a 14-line visible area
 		if !m.ready {
-			m.viewport = viewport.New(viewWidth, targetHeight-2) // -2 for rounded border
+			m.viewport = viewport.New(viewWidth, targetHeight-2)
 			m.ready = true
 		} else {
 			m.viewport.Width = viewWidth
@@ -122,7 +125,6 @@ func (m commitModel) View() string {
 		return "Initializing..."
 	}
 
-	// Define colors for focus states
 	activeColor := lipgloss.Color("#5000ff")
 	inactiveColor := lipgloss.Color("240")
 
@@ -133,23 +135,24 @@ func (m commitModel) View() string {
 		viewBorderCol = inactiveColor
 	}
 
-	listStyle := lipgloss.NewStyle().
-		Padding(0, 1)
+	// 1. List Style: Force it to stretch to targetHeight
+	// We don't add a border here so it stays clean
+	listSide := lipgloss.NewStyle().
+		Width(m.list.Width()).
+		Padding(0, 1).
+		Render(m.list.View())
 
-	// 2. Style the Viewport Panel (The Diff Box)
-	// We make it centered by giving it a fixed width and height
-	// based on the calculated viewWidth/viewHeight from Update
-	viewportStyle := lipgloss.NewStyle().
+	// 2. Viewport Style: Total height (including border) must be targetHeight
+	// Since the border takes 2 rows (top + bottom), we set Height to targetHeight - 2
+	viewportSide := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(viewBorderCol).
-		Padding(0, 1)
+		Padding(0, 1).
+		Width(m.viewport.Width).
+		Render(m.viewport.View())
 
-	listSide := listStyle.Render(m.list.View())
-
-	// We render the viewport inside the box
-	viewportSide := viewportStyle.Render(m.viewport.View())
-
-	// Join panels horizontally
+	// Join them side-by-side.
+	// JoinHorizontal(lipgloss.Top) ensures they align at the very first line.
 	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, listSide, viewportSide)
 
 	return docStyle.Render(mainContent)
@@ -169,57 +172,54 @@ func (d commitDelegate) Render(w io.Writer, m list.Model, index int, listItem li
 		return
 	}
 
-	// 1. Safety Check: If m.Width() is 0 (not yet initialized), use a default
 	listWidth := m.Width()
 	if listWidth <= 0 {
-		listWidth = 30 // Fallback width
+		listWidth = 30
 	}
 
-	// 2. Calculate available space for the description
-	// Subtract space for: Border (1), Padding (2), Hash (7), Gap (2)
-	// Total subtraction: ~12
-	availWidth := listWidth
-	// if availWidth < 10 {
-	// 	availWidth = 10
-	// } // Floor to 10 chars so it doesn't columnize
+	availWidth := listWidth - 11 // Adjusted because we removed the border width
+	if availWidth < 10 {
+		availWidth = 10
+	}
 
 	isSelected := index == m.Index()
-	borderColor := lipgloss.Color("240")
-	if isSelected && d.listFocused {
-		borderColor = lipgloss.Color("#5000ff")
+
+	// 1. Define the Hash Color Logic
+	// If selected, use a bright color (white or your accent purple)
+	// If not selected, use the dim grey
+	hashColor := lipgloss.Color("#606060") // Default dim grey
+	if isSelected {
+		if d.listFocused {
+			hashColor = lipgloss.Color("#5000ff") // Accent color when list is active
+		} else {
+			hashColor = lipgloss.Color("#FFFFFF") // White when list is blurred but item is selected
+		}
 	}
 
-	// 3. Apply Styles
-	hashStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#505050"))
+	// 2. Apply the dynamic color to the hashStyle
+	hashStyle := lipgloss.NewStyle().
+		Foreground(hashColor).
+		Bold(isSelected) // Bold the hash to make it pop even more
 
-	// Use the calculated width here
 	descStyle := lipgloss.NewStyle().Width(availWidth)
 
+	// 3. Clean up the base style (Removed the border logic)
 	fn := lipgloss.NewStyle().PaddingLeft(2)
-	if isSelected {
-		fn = fn.Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(borderColor)
-	}
 
 	shortHash := i.hash
 	if len(shortHash) > 7 {
 		shortHash = shortHash[:7]
 	}
 
-	userInfo := lipgloss.NewStyle().Foreground(lipgloss.Color("#5000ff")).Render(i.user)
-	timeInfo := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render("authored " + i.time)
+	userInfo := lipgloss.NewStyle().Foreground(lipgloss.Color("#707070")).Render(i.user)
+	timeInfo := lipgloss.NewStyle().Foreground(lipgloss.Color("#505050")).Render("authored " + i.time)
 
-	// Render components
-	renderedHash := hashStyle.Render(shortHash)
-	renderedDesc := descStyle.Render(i.desc)
-
-	// Join hash and description horizontally so the wrap stays to the right of the hash
-	line1 := lipgloss.JoinHorizontal(lipgloss.Top, renderedHash+"  ", renderedDesc)
+	// Render the line with the newly colored hash
+	line1 := lipgloss.JoinHorizontal(lipgloss.Top, hashStyle.Render(shortHash)+"  ", descStyle.Render(i.desc))
 	line2 := fmt.Sprintf("%s %s", userInfo, timeInfo)
 
 	fmt.Fprint(w, fn.Render(line1+"\n"+line2))
 }
-
 func fetchCommits(repoPath string, limit int) ([]list.Item, error) {
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
@@ -327,7 +327,8 @@ func CommitLog() {
 
 	l := list.New(items, commitDelegate{listFocused: true}, 0, 0)
 
-	l.Title = "Commit Log"
+	l.SetShowTitle(false)
+	l.SetShowStatusBar(false)
 
 	// Pass the repo to the model
 	m := commitModel{
