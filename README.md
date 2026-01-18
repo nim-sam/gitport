@@ -1,3 +1,9 @@
+
+<p align="center">
+  <img src="img/gitport_banner.png" width="300">
+</p>
+
+
 # GitPort
 
 GitPort is a lightweight CLI tool for self-hosting LAN-accessible Git repositories, enabling fast collaboration. Whether you want to host your repository on a server, or on your local machine, GitPort streamlines the nitty-gritty server making overhead into a few simple commands.
