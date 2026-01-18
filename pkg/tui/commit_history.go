@@ -32,7 +32,7 @@ func (i CommitItem) Hash() string        { return i.hash }
 func (i CommitItem) Description() string { return i.desc }
 func (i CommitItem) User() string        { return i.user }
 func (i CommitItem) Time() string        { return i.time }
-func (i CommitItem) FilterValue() string { return i.hash }
+func (i CommitItem) FilterValue() string { return i.desc }
 
 type commitModel struct {
 	list         list.Model
