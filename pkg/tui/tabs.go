@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"strings"
@@ -31,6 +31,7 @@ func (m mainModel) Init() tea.Cmd {
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
@@ -46,6 +47,17 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		newModel, cmd = m.commitLog.Update(subMsg)
 		m.commitLog = newModel.(commitModel)
 		return m, cmd // Or append to cmds
+
+		// // Propagate window size to sub-models
+		// var cmd tea.Cmd
+		// if m.activeTab == 0 {
+		// 	m.dashboard, cmd = m.dashboard.Update(msg)
+		// } else if m.activeTab == 1 {
+		// 	var newModel tea.Model
+		// 	newModel, cmd = m.commitLog.Update(msg)
+		// 	m.commitLog = newModel.(commitModel)
+		// }
+		// return m, cmd
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -97,11 +109,12 @@ func (m mainModel) View() string {
 	switch m.activeTab {
 
 	case 0:
-		doc.WriteString("Dashboard coming soon...")
+		doc.WriteString(m.dashboard.View())
 	case 1:
 		doc.WriteString(m.commitLog.View())
 	case 2:
 		doc.WriteString(m.logFinder.list.View())
+		d
 
 	}
 

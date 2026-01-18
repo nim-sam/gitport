@@ -1,4 +1,5 @@
-package main
+package tui
+
 
 import (
 	"fmt"
@@ -125,6 +126,7 @@ func (m commitModel) View() string {
 		return "Initializing..."
 	}
 
+<<<<<<< HEAD
 	// Calculate dynamic but limited height
 	maxViewportHeight := 20 // Maximum height for viewport
 	viewportHeight := maxViewportHeight
@@ -152,6 +154,39 @@ func (m commitModel) View() string {
 		Render(m.viewport.View())
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, listView, viewportContainer)
+=======
+	activeColor := lipgloss.Color("#5000ff")
+	inactiveColor := lipgloss.Color("240")
+
+	var viewBorderCol lipgloss.Color
+	if m.focus {
+		viewBorderCol = activeColor
+	} else {
+		viewBorderCol = inactiveColor
+	}
+
+	// 1. List Style: Force it to stretch to targetHeight
+	// We don't add a border here so it stays clean
+	listSide := lipgloss.NewStyle().
+		Width(m.list.Width()).
+		Padding(0, 1).
+		Render(m.list.View())
+
+	// 2. Viewport Style: Total height (including border) must be targetHeight
+	// Since the border takes 2 rows (top + bottom), we set Height to targetHeight - 2
+	viewportSide := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(viewBorderCol).
+		Padding(0, 1).
+		Width(m.viewport.Width).
+		Render(m.viewport.View())
+
+	// Join them side-by-side.
+	// JoinHorizontal(lipgloss.Top) ensures they align at the very first line.
+	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, listSide, viewportSide)
+
+	return docStyle.Render(mainContent)
+>>>>>>> auth
 }
 
 type commitDelegate struct {
