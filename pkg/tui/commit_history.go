@@ -66,7 +66,7 @@ func (m commitModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		targetHeight := msg.Height
+		targetHeight := msg.Height - 4
 
 		listWidth := msg.Width/2 - 2
 		viewWidth := msg.Width - listWidth - 4
@@ -76,7 +76,7 @@ func (m commitModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Viewport: account for border (2 lines) + padding (0 vertical in your style)
 		// The border adds 2 lines, so viewport content area should be targetHeight - 2
-		viewportHeight := targetHeight - 2
+		viewportHeight := targetHeight
 
 		if !m.ready {
 			m.viewport = viewport.New(viewWidth, viewportHeight)

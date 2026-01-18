@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nim-sam/gitport/pkg/logger"
 )
 
 type LogItem struct {
@@ -57,4 +58,41 @@ func (d logDelegate) Render(w io.Writer, m list.Model, index int, listItem list.
 	} else {
 		fmt.Fprint(w, rowStr)
 	}
+}
+
+func fetchLogItems() []list.Item {
+	// Call the function we created in the logger package
+	records, err := logger.ReadLogs()
+	if err != nil {
+		// Return a single error item if the file can't be read
+		return []list.Item{LogItem{level: "ERROR", desc: "Could not read logs: " + err.Error(), time: ""}}
+	}
+
+	var items []list.Item
+	// Skip the first row if it's the header "Date,Time,Level,Message"
+	startIdx := 0
+	if len(records) > 0 && records[0][0] == "Date" {
+		startIdx = 1
+	}
+
+	for i := startIdx; i < len(records); i++ {
+		row := records[i]
+		// Ensure the row has enough columns to prevent index out of range
+		if len(row) < 4 {
+			continue
+		}
+
+		items = append(items, LogItem{
+			time:  fmt.Sprintf("%s %s", row[0], row[1]), // Combines Date and Time
+			level: row[2],
+			desc:  row[3],
+		})
+	}
+
+	// Optional: Reverse items if you want the newest logs at the top
+	for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
+		items[i], items[j] = items[j], items[i]
+	}
+
+	return items
 }

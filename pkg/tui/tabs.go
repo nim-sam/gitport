@@ -35,7 +35,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Propagate size to ALL models so they can calculate layout
 		// Subtract height for your header (tabs + spacing)
-		subMsg := tea.WindowSizeMsg{Width: m.width, Height: m.height - 4}
+		subMsg := tea.WindowSizeMsg{Width: m.width, Height: m.height - 3}
 
 		var cmdD, cmdC, cmdL tea.Cmd
 		m.dashboard, cmdD = m.dashboard.Update(subMsg)

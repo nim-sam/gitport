@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -57,11 +58,11 @@ func InitTermLogger() {
 
 func InitFileLogs() *os.File {
 	filePath := filepath.Join(WorkDir, Logs)
-	
+
 	// Check if file exists to determine if we need to write header
 	_, err := os.Stat(filePath)
 	fileExists := err == nil
-	
+
 	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Error("Could not open logs file", "error", err)
@@ -69,7 +70,7 @@ func InitFileLogs() *os.File {
 	}
 
 	Logger.LogFile = file
-	
+
 	// Write CSV header if file is new
 	if !fileExists {
 		_, err = file.WriteString("Date,Time,Level,Message\n")
@@ -90,11 +91,11 @@ func (m *MultiLogger) writeCSV(level string, msg interface{}, keyvals ...interfa
 	if m.LogFile == nil {
 		return
 	}
-	
+
 	now := time.Now()
 	date := now.Format("2006-01-02")
 	timeStr := now.Format("15:04:05")
-	
+
 	// Build message with key-value pairs
 	msgStr := fmt.Sprintf("%v", msg)
 	if len(keyvals) > 0 {
@@ -110,13 +111,13 @@ func (m *MultiLogger) writeCSV(level string, msg interface{}, keyvals ...interfa
 			}
 		}
 	}
-	
+
 	// Escape quotes and commas in message
 	msgStr = strings.ReplaceAll(msgStr, "\"", "\"\"")
 	if strings.ContainsAny(msgStr, ",\n\"") {
 		msgStr = "\"" + msgStr + "\""
 	}
-	
+
 	line := fmt.Sprintf("%s,%s,%s,%s\n", date, timeStr, level, msgStr)
 	m.LogFile.WriteString(line)
 }
@@ -201,7 +202,7 @@ func watchFiles() {
 			if event.Has(fsnotify.Write) {
 				fileName := filepath.Base(event.Name)
 				Logger.Info("File modified externally", "file", fileName, "path", event.Name)
-				
+
 				// Reload the modified file
 				if fileName == Users {
 					// Import cycle issue - we'll need to use a callback
@@ -274,7 +275,7 @@ func SetConfig(newConfig ConfigData) {
 // ReloadConfig reloads config from disk (called when file changes)
 func ReloadConfig() error {
 	Logger.Info("Detected external change, reloading config", "file", Conf)
-	
+
 	file, err := os.Open(filepath.Join(WorkDir, Conf))
 	if err != nil {
 		return err
@@ -297,10 +298,10 @@ func WriteJSONFile(filename string, data interface{}) error {
 		Logger.Error("WorkDir not set, cannot write file", "file", filename)
 		return fmt.Errorf("WorkDir not set")
 	}
-	
+
 	filePath := filepath.Join(WorkDir, filename)
 	Logger.Info("Writing JSON file", "file", filename, "path", filePath)
-	
+
 	// Temporarily remove from watcher
 	if fileWatcher != nil {
 		fileWatcher.Remove(filePath)
@@ -329,4 +330,28 @@ func WriteJSONFile(filename string, data interface{}) error {
 		Logger.Info("File written successfully", "file", filename, "path", filePath)
 	}
 	return err
+}
+
+// ReadLogs reads the logs.csv file and returns it as a list of lists.
+// Each inner list represents a row: [Date, Time, Level, Message]
+func ReadLogs() ([][]string, error) {
+	filePath := filepath.Join(WorkDir, Logs)
+
+	// Open the file for reading
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open log file: %w", err)
+	}
+	defer file.Close()
+
+	// Initialize CSV reader
+	reader := csv.NewReader(file)
+
+	// Read all records at once
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse CSV: %w", err)
+	}
+
+	return records, nil
 }

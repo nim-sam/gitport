@@ -179,11 +179,7 @@ func Middleware(repoPath string) wish.Middleware {
 			}
 
 			// Setup Log Finder
-			logItems := []list.Item{
-				LogItem{"ERROR", "DB Timeout", "2024-05-20 10:00"},
-				LogItem{"INFO", "App Started", "2024-05-20 10:01"},
-				LogItem{"WARN", "Disk Near Full", "2024-05-20 10:05"},
-			}
+			logItems := fetchLogItems() // <--- Use the helper here
 			l_log := list.New(logItems, logDelegate{}, w, h)
 			l_log.SetShowTitle(false)
 			l_log.SetShowStatusBar(false)
