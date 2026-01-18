@@ -94,13 +94,19 @@ func (m dashboardModel) Update(msg tea.Msg) (dashboardModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	// dashboard.go - Update method for WindowSizeMsg
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
 
-		// Let the list take up 60% of the width, and the full height (minus help/tabs)
+		// Calculate heights properly
+		totalHeight := m.height
+		helpHeight := 1 // Help text at bottom
+
+		// List takes full height minus help
+		listHeight := totalHeight - helpHeight
 		listWidth := int(float64(m.width) * 0.6)
-		listHeight := m.height - 2
+
 		m.userList.SetSize(listWidth, listHeight)
 
 	case tea.KeyMsg:
@@ -275,12 +281,12 @@ func (m dashboardModel) View() string {
 	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Bold(true)
 	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#707070"))
 	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#5000ff")).Bold(true)
-	helpTextStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#505050"))
+	//helpTextStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#505050"))
 
 	configContent := titleStyle.Render("Config") + "\n\n" +
 		valueStyle.Render(publicStr) + "\n" +
-		labelStyle.Render("Default Permission: ") + valueStyle.Render(defaultPerm) + "\n\n" +
-		helpTextStyle.Render("[t] Toggle Public  [P] Cycle Default Perm")
+		labelStyle.Render("Default Permission: ") + valueStyle.Render(defaultPerm) // + "\n\n" +
+	//helpTextStyle.Render("[t] Toggle Public  [P] Cycle Default Perm")
 
 	configBox := configStyle.Render(configContent)
 
@@ -290,7 +296,7 @@ func (m dashboardModel) View() string {
 		MarginTop(1)
 
 	help := helpStyle.Render(
-		"[n] New User  [d] Delete User  [p] Cycle User Perm",
+		"[n] New User  [d] Delete User  [p] Cycle User Perm [t] Toggle Public  [P] Cycle Default Perm",
 	)
 
 	// Layout

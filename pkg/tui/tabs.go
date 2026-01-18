@@ -34,17 +34,32 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 
 		// Propagate size to ALL models so they can calculate layout
-		// Subtract height for your header (tabs + spacing)
-		subMsg := tea.WindowSizeMsg{Width: m.width, Height: m.height - 3}
+		// Different height for each tab based on their needs
 
+		// For Dashboard: Account for tabs (2) + help (1) + config section (~4)
+		dashboardHeight := m.height - 7
+
+		// For Commit History: Account for tabs (2) + diff header (1)
+		commitHeight := m.height - 3
+
+		// For Logs: Account for tabs (2)
+		logHeight := m.height - 2
+
+		// Update each model with appropriate size
 		var cmdD, cmdC, cmdL tea.Cmd
-		m.dashboard, cmdD = m.dashboard.Update(subMsg)
 
-		// If commitLog returns tea.Model, we assert it back
-		newCommit, cmdC := m.commitLog.Update(subMsg)
+		// Dashboard
+		dashMsg := tea.WindowSizeMsg{Width: m.width, Height: dashboardHeight}
+		m.dashboard, cmdD = m.dashboard.Update(dashMsg)
+
+		// Commit History
+		commitMsg := tea.WindowSizeMsg{Width: m.width, Height: commitHeight}
+		newCommit, cmdC := m.commitLog.Update(commitMsg)
 		m.commitLog = newCommit.(commitModel)
 
-		m.logFinder.list, cmdL = m.logFinder.list.Update(subMsg)
+		// Logs
+		logMsg := tea.WindowSizeMsg{Width: m.width, Height: logHeight}
+		m.logFinder.list, cmdL = m.logFinder.list.Update(logMsg)
 
 		return m, tea.Batch(cmdD, cmdC, cmdL)
 
