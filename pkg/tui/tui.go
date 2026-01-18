@@ -24,7 +24,11 @@ func StartTui() {
 		return
 	}
 
-	items, _ := fetchCommits(".", 30)
+	items, err := fetchCommits(".", 30)
+	// Handle empty repository gracefully
+	if err != nil {
+		items = []list.Item{}
+	}
 
 	// 1. Define fixed dimensions for the inline view
 	// Since we are inline, pick a height that fits comfortably
@@ -45,6 +49,8 @@ func StartTui() {
 		initialHash = items[0].(CommitItem).hash
 		rawDiff := getCommitDiff(repo, initialHash)
 		vp.SetContent(highlightDiff(rawDiff))
+	} else {
+		vp.SetContent("No commits yet. Make your first commit to see the history here.")
 	}
 
 	cm := commitModel{
@@ -107,10 +113,9 @@ func Middleware(repoPath string) wish.Middleware {
 			}
 
 			items, err := fetchCommits(repoPath, 30)
+			// Handle empty repository gracefully
 			if err != nil {
-				wish.Errorln(sess, "Error fetching commits:", err)
-				next(sess)
-				return
+				items = []list.Item{}
 			}
 
 			// Define fixed dimensions for the TUI
@@ -131,6 +136,8 @@ func Middleware(repoPath string) wish.Middleware {
 				initialHash = items[0].(CommitItem).hash
 				rawDiff := getCommitDiff(repo, initialHash)
 				vp.SetContent(highlightDiff(rawDiff))
+			} else {
+				vp.SetContent("No commits yet. Push your first commit to see the history here.")
 			}
 
 			cm := commitModel{

@@ -250,13 +250,14 @@ func gitService(port string, cwd string) {
 	h := Hook{repoName}
 
 	hostKeyPath := filepath.Join(logger.WorkDir, ".ssh", "id_ed25519")
+	bareRepoPath := filepath.Join(repoDir, repoName)
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort("0.0.0.0", port)),
 		wish.WithHostKeyPath(hostKeyPath),
 		wish.WithPublicKeyAuth(auth.AuthHandler),
 		wish.WithMiddleware(
 			git.Middleware(repoDir, h),
-			tui.Middleware(cwd),
+			tui.Middleware(bareRepoPath),
 			logging.Middleware(),
 		),
 	)
