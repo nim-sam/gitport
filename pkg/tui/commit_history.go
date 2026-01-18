@@ -66,10 +66,21 @@ func (m commitModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		targetHeight := msg.Height - 4
+		helpHeight := 1
+		borderHeight := 2
+		targetHeight := msg.Height - helpHeight - borderHeight
+		if targetHeight < 1 {
+			targetHeight = 1
+		}
 
 		listWidth := msg.Width/2 - 2
+		if listWidth < 10 {
+			listWidth = 10
+		}
 		viewWidth := msg.Width - listWidth - 4
+		if viewWidth < 10 {
+			viewWidth = 10
+		}
 
 		// List gets full height
 		m.list.SetSize(listWidth, targetHeight)
@@ -122,11 +133,16 @@ func (m commitModel) View() string {
 		BorderForeground(borderColor).
 		Padding(0, 1)
 
-	return lipgloss.JoinHorizontal(
+	content := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		m.list.View(),
 		vpStyle.Render(m.viewport.View()),
 	)
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#505050"))
+	help := helpStyle.Render("[up/down] Navigate commits  [enter] Toggle diff focus  [esc] Leave diff  [tab] Switch tab")
+
+	return lipgloss.JoinVertical(lipgloss.Left, content, help)
 }
 
 type commitDelegate struct {

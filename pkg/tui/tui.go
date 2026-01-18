@@ -152,13 +152,31 @@ func Middleware(repoPath string) wish.Middleware {
 			w := pty.Window.Width
 			h := pty.Window.Height
 
-			l_commit := list.New(items, commitDelegate{listFocused: true}, w/2, h)
+			contentHeight := h - 2
+			if contentHeight < 1 {
+				contentHeight = 1
+			}
+
+			commitAreaHeight := contentHeight - 3 // Help + viewport border
+			if commitAreaHeight < 1 {
+				commitAreaHeight = 1
+			}
+
+			commitListWidth := w/2 - 2
+			if commitListWidth < 10 {
+				commitListWidth = 10
+			}
+
+			l_commit := list.New(items, commitDelegate{listFocused: true}, commitListWidth, commitAreaHeight)
 			l_commit.SetShowTitle(false)
 			l_commit.SetShowStatusBar(false)
 
 			// 2. Pre-initialize the viewport so 'ready' is true from the start
-			viewWidth := w - (w / 2) - 8
-			vp := viewport.New(viewWidth, h-2)
+			viewWidth := w - commitListWidth - 4
+			if viewWidth < 10 {
+				viewWidth = 10
+			}
+			vp := viewport.New(viewWidth, commitAreaHeight)
 
 			// 3. Populate the initial diff so it's not empty
 			var initialHash string
@@ -179,10 +197,15 @@ func Middleware(repoPath string) wish.Middleware {
 			}
 
 			// Setup Log Finder
-			logItems := fetchLogItems() // <--- Use the helper here
-			l_log := list.New(logItems, logDelegate{}, w, h)
+			logItems := fetchLogItems()    // <--- Use the helper here
+			logHeight := contentHeight - 1 // Leave space for footer
+			if logHeight < 1 {
+				logHeight = 1
+			}
+			l_log := list.New(logItems, logDelegate{}, w, logHeight)
 			l_log.SetShowTitle(false)
 			l_log.SetShowStatusBar(false)
+			l_log.SetShowPagination(false)
 			l_log.KeyMap.Quit.SetEnabled(false) // Don't let 'q' kill the whole app
 
 			lf := logModel{

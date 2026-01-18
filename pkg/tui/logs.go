@@ -21,6 +21,31 @@ type logModel struct {
 	ready bool
 }
 
+func (m logModel) Update(msg tea.Msg) (logModel, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		height := msg.Height - 1 // Leave room for footer
+		if height < 1 {
+			height = 1
+		}
+		m.list.SetSize(msg.Width, height)
+		return m, nil
+	}
+
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
+}
+
+func (m logModel) View() string {
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#505050"))
+	pagination := helpStyle.Render(m.list.Paginator.View())
+	help := helpStyle.Render("[up/down] Navigate logs  [tab] Switch tab")
+	footer := lipgloss.JoinHorizontal(lipgloss.Left, pagination, "  ", help)
+
+	return lipgloss.JoinVertical(lipgloss.Left, m.list.View(), footer)
+}
+
 type logDelegate struct{}
 
 func (d logDelegate) Height() int                               { return 1 }
