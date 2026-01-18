@@ -309,8 +309,7 @@ func ContainsFile(d []os.DirEntry, name string) bool {
 func configureLocalGit(uri string) {
 	logger.Logger.Info("Configuring local git remote...", "uri", uri)
 
-	// 1. Set the remote 'origin' to our new server URI
-	// We try to set-url first (in case it exists), if that fails, we add it.
+	// 1. Set the remote 'origin'
 	if err := exec.Command("git", "remote", "set-url", "origin", uri).Run(); err != nil {
 		if err := exec.Command("git", "remote", "add", "origin", uri).Run(); err != nil {
 			logger.Logger.Error("Failed to set git remote", "error", err)
@@ -318,31 +317,41 @@ func configureLocalGit(uri string) {
 		}
 	}
 
-	// 2. Fetch from the remote to ensure we see the refs
-	// This requires the SSH server to be up and running!
+	// 2. Fetch from the remote
+	// Note: In a brand new empty repo, fetch will succeed but won't find any refs.
 	if err := exec.Command("git", "fetch", "origin").Run(); err != nil {
-		logger.Logger.Error("Failed to fetch from origin. Is the server reachable?", "error", err)
-		return
+		logger.Logger.Warn("Could not fetch from origin. If this is a new repo, this is normal.", "error", err)
 	}
 
 	// 3. Determine current branch name
-	// We need to know which branch to associate with the upstream
+	var currentBranch string
 	out, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+
 	if err != nil {
-		logger.Logger.Error("Failed to get current branch", "error", err)
-		return
+		// HEAD is invalid (empty repo). Let's find the intended branch name.
+		// Fallback 1: Check git config for default branch name
+		defaultBranch, configErr := exec.Command("git", "config", "--get", "init.defaultBranch").Output()
+		if configErr == nil && len(defaultBranch) > 0 {
+			currentBranch = strings.TrimSpace(string(defaultBranch))
+		} else {
+			// Fallback 2: Standard git default
+			currentBranch = "master"
+		}
+		logger.Logger.Info("Empty repository detected. Future commits will track", "branch", currentBranch)
+	} else {
+		currentBranch = strings.TrimSpace(string(out))
 	}
-	currentBranch := strings.TrimSpace(string(out))
 
 	// 4. Set the upstream (tracking) information
-	// This allows you to run 'git pull' and 'git push' without arguments
+	// This will only work if the remote branch already exists (i.e., someone pushed already).
+	// If it fails, we provide the user with the command to link them on first push.
 	upstream := fmt.Sprintf("origin/%s", currentBranch)
 	if err := exec.Command("git", "branch", "--set-upstream-to="+upstream, currentBranch).Run(); err != nil {
-		logger.Logger.Error("Failed to set upstream branch", "error", err)
-		return
+		logger.Logger.Info("Remote branch not found yet. To push and link, run:",
+			"command", fmt.Sprintf("git push -u origin %s", currentBranch))
+	} else {
+		logger.Logger.Info("Git remote configured successfully. Tracking", "upstream", upstream)
 	}
-
-	logger.Logger.Info("Git remote configured successfully. You can now use 'git push' and 'git pull'.")
 }
 
 /**
