@@ -21,6 +21,7 @@ type mainModel struct {
 	state     sessionState
 	activeTab int
 	commitLog commitModel // Your existing model
+	logFinder logModel
 	width     int
 	height    int
 }
@@ -57,10 +58,14 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Route regular messages (keys, etc.) only to the active tab
-	if m.activeTab == 1 {
+	switch m.activeTab {
+	case 1:
 		var newModel tea.Model
 		newModel, cmd = m.commitLog.Update(msg)
 		m.commitLog = newModel.(commitModel)
+		cmds = append(cmds, cmd)
+	case 2:
+		m.logFinder.list, cmd = m.logFinder.list.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -96,7 +101,7 @@ func (m mainModel) View() string {
 	case 1:
 		doc.WriteString(m.commitLog.View())
 	case 2:
-		doc.WriteString("Logs coming soon...")
+		doc.WriteString(m.logFinder.list.View())
 
 	}
 

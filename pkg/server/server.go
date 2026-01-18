@@ -114,13 +114,6 @@ func gitService(port string, cwd string) {
 	localIp := getLocalIP()
 	fullUri := "ssh://" + net.JoinHostPort(localIp, port) + "/" + repoName
 
-	// 1. Add the local server as a remote (e.g., named 'origin' or 'gitport')
-	//exec.Command("git", "remote", "add", "origin", fullUri).Run()
-
-	// 2. Set the upstream tracking
-	// This tells the local branch to track the remote branch
-	//exec.Command("git", "push", "--set-upstream", "origin", "master").Run()
-
 	// GitHooks implementation to allow global read write access
 	a := app{
 		git.ReadWriteAccess,

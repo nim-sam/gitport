@@ -26,9 +26,9 @@ func StartTui() {
 	defaultHeight := 14
 	defaultWidth := 80
 
-	l := list.New(items, commitDelegate{listFocused: true}, defaultWidth/2, defaultHeight)
-	l.SetShowTitle(false)
-	l.SetShowStatusBar(false)
+	l_commit := list.New(items, commitDelegate{listFocused: true}, defaultWidth/2, defaultHeight)
+	l_commit.SetShowTitle(false)
+	l_commit.SetShowStatusBar(false)
 
 	// 2. Pre-initialize the viewport so 'ready' is true from the start
 	viewWidth := defaultWidth - (defaultWidth / 2) - 8
@@ -43,16 +43,33 @@ func StartTui() {
 	}
 
 	cm := commitModel{
-		list:         l,
+		list:         l_commit,
 		viewport:     vp,
 		repo:         repo,
 		ready:        true, // SET THIS TO TRUE
 		selectedHash: initialHash,
 	}
 
+	// Setup Log Finder
+	logItems := []list.Item{
+		LogItem{"ERROR", "DB Timeout", "2024-05-20 10:00"},
+		LogItem{"INFO", "App Started", "2024-05-20 10:01"},
+		LogItem{"WARN", "Disk Near Full", "2024-05-20 10:05"},
+	}
+	l_log := list.New(logItems, logDelegate{}, 80, 16)
+	l_log.SetShowTitle(false)
+	l_log.SetShowStatusBar(false)
+	l_log.KeyMap.Quit.SetEnabled(false) // Don't let 'q' kill the whole app
+
+	lf := logModel{
+		list:  l_log,
+		ready: true,
+	}
+
 	m := mainModel{
 		activeTab: 0, // Start on Commit History to test
 		commitLog: cm,
+		logFinder: lf,
 	}
 
 	p := tea.NewProgram(m)
