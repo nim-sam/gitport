@@ -2,7 +2,7 @@
 
 GitPort is a lightweight CLI tool for self-hosting LAN-accessible Git repositories, enabling fast collaboration. Whether you want to host your repository on a server, or on your local machine, GitPort streamlines the nitty-gritty server making overhead into a few simple commands.
 
-# Installation
+## Installation
 
 Installing GitPort is as easy as 123. With these commands, you'll be able to build the executable and add it to your file path.
 
@@ -14,7 +14,7 @@ sudo make install
 
 And that's it! You can now run GitPort from any directory on your system.
 
-# Usage
+## Usage
 
 ``` bash
 # Initialize a new Git repository
@@ -33,17 +33,17 @@ A `.../.gitport` folder will also be generated inside the *bare repo* to store a
 
 Future calls of `gitport start <port>` will allow you to pick up right where you left off without additional fuss.
 
-# SSH TUI
+## SSH TUI
 
 The server can be monitored during its uptime with the help of a Terminal User Interface (TUI). Accessing this TUI doesn't require any additional installation, as it can be accessed over SSH. Only users with `admin` permissions can access the TUI. 
 
 ``` bash
 # To access the TUI, simply run this command on any host on the local network. The TUI should appear in full screen if you have the correct credentials and access level.
-ssh -p <port> <server_URI>
+ssh -p <port> <server_ip_addr>
 ```
 
 On the TUI, server configurations such as user permissions (admin, ...) and repository-level edit access (read, write, ...) can be modified. *Note that a server reboot will be necessary for those changes to apply*. Additionally, the TUI displays the commit history and the respective diff's for each commit. Server-level logs can also be accessed directly on the TUI. Both the commit history and server-side logs can be filtered via a fuzzy finder.
 
-# Honorable Mentions
+## Honorable Mentions
 
 During the development process, we were able to fully collaborate on this project with the help of GitPort upon the successful implementation of our first minimal viable product.
