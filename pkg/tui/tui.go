@@ -23,7 +23,7 @@ func StartTui() {
 
 	// 1. Define fixed dimensions for the inline view
 	// Since we are inline, pick a height that fits comfortably
-	defaultHeight := 16
+	defaultHeight := 14
 	defaultWidth := 80
 
 	l := list.New(items, commitDelegate{listFocused: true}, defaultWidth/2, defaultHeight)
@@ -51,7 +51,7 @@ func StartTui() {
 	}
 
 	m := mainModel{
-		activeTab: 1, // Start on Commit History to test
+		activeTab: 0, // Start on Commit History to test
 		commitLog: cm,
 	}
 

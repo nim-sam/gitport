@@ -30,7 +30,22 @@ func (m mainModel) Init() tea.Cmd {
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+
+		// IMPORTANT: Always pass size to sub-models so they can initialize
+		// Subtract a bit of height for your tab header
+		subMsg := tea.WindowSizeMsg{Width: msg.Width, Height: msg.Height - 4}
+		var newModel tea.Model
+		newModel, cmd = m.commitLog.Update(subMsg)
+		m.commitLog = newModel.(commitModel)
+		return m, cmd // Or append to cmds
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
@@ -41,15 +56,15 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Only update the sub-model that is currently active
-	var cmd tea.Cmd
+	// Route regular messages (keys, etc.) only to the active tab
 	if m.activeTab == 1 {
 		var newModel tea.Model
 		newModel, cmd = m.commitLog.Update(msg)
 		m.commitLog = newModel.(commitModel)
+		cmds = append(cmds, cmd)
 	}
 
-	return m, cmd
+	return m, tea.Batch(cmds...)
 }
 
 func (m mainModel) View() string {
