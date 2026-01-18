@@ -37,30 +37,24 @@ func InitConfig() error {
 			logger.Logger.Warn("File not found, creating default config", "file", logger.Conf)
 
 			var input string
+			var newConfig logger.ConfigData
 
 			fmt.Print("Do you want the server to be public (allow guest users)? (y/n): ")
 			fmt.Scan(&input)
-			logger.Config.Public = (input == "y")
+			newConfig.Public = (input == "y")
 
 			fmt.Print("What is the default permission of users (none, read, write, admin): ")
 			fmt.Scan(&input)
 			switch input {
 			case "read", "write", "admin":
-				logger.Config.DefaultPerm = input
+				newConfig.DefaultPerm = input
 			default:
-				logger.Config.DefaultPerm = "none"
+				newConfig.DefaultPerm = "none"
 			}
 
-			file, err := os.Create(filepath.Join(logger.WorkDir, logger.Conf))
-			if err != nil {
-				return err
-			}
-			defer file.Close()
+			logger.SetConfig(newConfig)
 
-			encoder := json.NewEncoder(file)
-			encoder.SetIndent("", "    ")
-			err = encoder.Encode(logger.Config)
-			if err != nil {
+			if err := logger.WriteJSONFile(logger.Conf, newConfig); err != nil {
 				return err
 			}
 
@@ -76,10 +70,13 @@ func InitConfig() error {
 		return err
 	}
 
-	err = json.Unmarshal(bytes, &logger.Config)
+	var newConfig logger.ConfigData
+	err = json.Unmarshal(bytes, &newConfig)
 	if err != nil {
 		return err
 	}
+
+	logger.SetConfig(newConfig)
 
 	return nil
 }
@@ -95,7 +92,7 @@ func (h Hook) AuthRepo(repo string, key ssh.PublicKey) git.AccessLevel {
 
 	userKey := key.Type() + " " + base64.StdEncoding.EncodeToString(key.Marshal())
 
-	user, exist := auth.Data[userKey]
+	user, exist := auth.GetUserByKey(userKey)
 	if !exist {
 		return git.NoAccess
 	}
@@ -227,6 +224,17 @@ func gitService(port string, cwd string) {
 		logger.Logger.Error("Failed to ensure host admin", "error", err)
 		return
 	}
+
+	// Set callback for reloading users when file changes
+	logger.SetUsersReloadCallback(auth.ReloadUsers)
+
+	// Initialize file watcher for users.json and config.json
+	err = logger.InitFileWatcher()
+	if err != nil {
+		logger.Logger.Error("Failed to initialize file watcher", "error", err)
+		return
+	}
+	defer logger.CloseFileWatcher()
 
 	localIp := getLocalIP()
 	fullUri := "ssh://" + net.JoinHostPort(localIp, port) + "/" + repoName

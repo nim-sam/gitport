@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/charmbracelet/ssh"
 
@@ -18,14 +19,19 @@ type User struct {
 	Perm string `json:"perm"`
 }
 
-var Data map[string]User
+var (
+	Data   map[string]User
+	dataMu sync.RWMutex
+)
 
 func InitUsers() error {
 	file, err := os.Open(filepath.Join(logger.WorkDir, logger.Users))
 	if err != nil {
 		if os.IsNotExist(err) {
 			logger.Logger.Warn("File not found, creating empty user data", "file", logger.Users)
+			dataMu.Lock()
 			Data = make(map[string]User)
+			dataMu.Unlock()
 			return nil
 		}
 		return err
@@ -37,12 +43,41 @@ func InitUsers() error {
 		return err
 	}
 
-	err = json.Unmarshal(bytes, &Data)
+	var newData map[string]User
+	err = json.Unmarshal(bytes, &newData)
 	if err != nil {
 		return err
 	}
 
+	dataMu.Lock()
+	Data = newData
+	dataMu.Unlock()
+
+	logger.Logger.Info("Users data refreshed", "file", logger.Users, "count", len(newData))
+
 	return nil
+}
+
+// ReloadUsers reloads user data from disk (called when file changes)
+func ReloadUsers() error {
+	logger.Logger.Info("Detected external change, reloading users", "file", logger.Users)
+	return InitUsers()
+}
+
+// GetUserByKey safely retrieves a user by their key string with read lock
+func GetUserByKey(key string) (User, bool) {
+	dataMu.RLock()
+	defer dataMu.RUnlock()
+	user, ok := Data[key]
+	return user, ok
+}
+
+// SaveUsers writes user data to disk with proper locking and watcher suspension
+func SaveUsers() error {
+	dataMu.RLock()
+	defer dataMu.RUnlock()
+
+	return logger.WriteJSONFile(logger.Users, Data)
 }
 
 // EnsureHostAdmin checks if any admin users exist, and if not, adds the host's SSH key as admin
@@ -99,21 +134,15 @@ func EnsureHostAdmin() error {
 	// Use only key type and base64 key, ignore comment
 	normalizedKey := keyParts[0] + " " + keyParts[1]
 	
+	dataMu.Lock()
 	Data[normalizedKey] = User{
 		Name: "host (admin)",
 		Perm: "admin",
 	}
+	dataMu.Unlock()
 
 	// Save to users.json
-	file, err := os.Create(filepath.Join(logger.WorkDir, logger.Users))
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "    ")
-	if err := encoder.Encode(Data); err != nil {
+	if err := SaveUsers(); err != nil {
 		return err
 	}
 
@@ -139,35 +168,27 @@ func AuthHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	if !exist {
 		username := ctx.User() + "@" + ctx.RemoteAddr().String()
 
-		if !logger.Config.Public {
+		if !logger.GetConfigPublic() {
 			logger.Logger.Warn("Unauthorized user tried to connect", "key", username)
 			return false
 		}
 
 		logger.Logger.Info("New user connecting", "user", username)
 
-		perms := logger.Config.DefaultPerm
+		perms := logger.GetConfigDefaultPerm()
 		if perms == "" {
 			logger.Logger.Error("No default permissions in file", "file", logger.Conf)
 			perms = "none"
 		}
 
+		dataMu.Lock()
 		Data[userKey] = User{
 			Name: username,
 			Perm: perms,
 		}
+		dataMu.Unlock()
 
-		file, err := os.Create(filepath.Join(logger.WorkDir, logger.Users))
-		if err != nil {
-			logger.Logger.Error("Could not edit users file", "error", err)
-			return false
-		}
-		defer file.Close()
-
-		encoder := json.NewEncoder(file)
-		encoder.SetIndent("", "    ")
-		err = encoder.Encode(Data)
-		if err != nil {
+		if err := SaveUsers(); err != nil {
 			logger.Logger.Error("Could not edit users file", "error", err)
 			return false
 		}
