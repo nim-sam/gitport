@@ -36,8 +36,9 @@ type MultiLogger struct {
 }
 
 var Logger = MultiLogger{
-	LogFile:    nil,
-	TermLogger: log.New(os.Stdout),
+	LogFile: nil,
+	//TermLogger: log.New(os.Stdout),
+	TermLogger: nil,
 }
 
 var fileWatcher *fsnotify.Watcher
