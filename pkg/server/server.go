@@ -221,6 +221,13 @@ func gitService(port string, cwd string) {
 		return
 	}
 
+	// Ensure the host is added as admin
+	err = auth.EnsureHostAdmin()
+	if err != nil {
+		logger.Logger.Error("Failed to ensure host admin", "error", err)
+		return
+	}
+
 	localIp := getLocalIP()
 	fullUri := "ssh://" + net.JoinHostPort(localIp, port) + "/" + repoName
 
