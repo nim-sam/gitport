@@ -2,8 +2,11 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"os"
@@ -14,27 +17,107 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/charmbracelet/wish/git"
 	"github.com/charmbracelet/wish/logging"
+
+	"github.com/nim-sam/gitport/pkg/auth"
+	"github.com/nim-sam/gitport/pkg/logger"
 )
 
-type app struct {
-	access git.AccessLevel
+const (
+	dir = ".gitport"
+)
+
+func InitConfig() error {
+	file, err := os.Open(filepath.Join(logger.WorkDir, logger.Conf))
+	if err != nil {
+		if os.IsNotExist(err) {
+			logger.Logger.Warn("File not found, creating default config", "file", logger.Conf)
+
+			var input string
+
+			fmt.Print("Do you want the server to be public (allow guest users)? (y/n): ")
+			fmt.Scan(&input)
+			logger.Config.Public = (input == "y")
+
+			fmt.Print("What is the default permission of users (none, read, write, admin): ")
+			fmt.Scan(&input)
+			switch input {
+			case "read", "write", "admin":
+				logger.Config.DefaultPerm = input
+			default:
+				logger.Config.DefaultPerm = "none"
+			}
+
+			file, err := os.Create(filepath.Join(logger.WorkDir, logger.Conf))
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			encoder := json.NewEncoder(file)
+			encoder.SetIndent("", "    ")
+			err = encoder.Encode(logger.Config)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}
+
+		return err
+	}
+	defer file.Close()
+
+	bytes, err := io.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(bytes, &logger.Config)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (a app) AuthRepo(string, ssh.PublicKey) git.AccessLevel {
-	return a.access
+type Hook struct {
+	repoName string
 }
 
-func (a app) Push(repo string, _ ssh.PublicKey) {
-	log.Info("push", "repo", repo)
+func (h Hook) AuthRepo(repo string, key ssh.PublicKey) git.AccessLevel {
+	if repo != h.repoName {
+		return git.NoAccess
+	}
+
+	userKey := key.Type() + " " + base64.StdEncoding.EncodeToString(key.Marshal())
+
+	user, exist := auth.Data[userKey]
+	if !exist {
+		return git.NoAccess
+	}
+
+	switch user.Perm {
+	case "read":
+		return git.ReadOnlyAccess
+	case "write":
+		return git.ReadWriteAccess
+	case "admin":
+		return git.AdminAccess
+	default:
+		return git.NoAccess
+	}
 }
 
-func (a app) Fetch(repo string, _ ssh.PublicKey) {
-	log.Info("fetch", "repo", repo)
+func (h Hook) Push(repo string, key ssh.PublicKey) {
+	logger.Logger.Info("Push", "repo", repo)
+}
+
+func (h Hook) Fetch(repo string, key ssh.PublicKey) {
+	logger.Logger.Info("Fetch", "repo", repo)
 }
 
 /*
@@ -66,12 +149,13 @@ func createBareRepo(cwd string) (string, string, error) {
 	configDir, err := os.UserConfigDir()
 
 	if err != nil {
-		log.Error("Couldn't find user config directory", "error", err)
+		logger.Logger.Error("Couldn't find user config directory", "error", err)
 		return "", "", err
 	}
 
 	baseDir := filepath.Join(configDir, "gitport")
 	barePath := filepath.Join(baseDir, repoName)
+	logger.WorkDir = filepath.Join(barePath, dir)
 
 	// 1. Ensure the base directory exists
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
@@ -81,7 +165,7 @@ func createBareRepo(cwd string) (string, string, error) {
 	// 2. Check if the bare repository already exists
 	if _, err := os.Stat(barePath); err == nil {
 		// Repository already exists, return the data without cloning
-		log.Debug("Bare repo already exists, skipping clone", "path", barePath)
+		logger.Logger.Warn("Bare repo already exists, skipping clone", "path", barePath)
 		return baseDir, repoName, nil
 	}
 
@@ -104,61 +188,72 @@ func createBareRepo(cwd string) (string, string, error) {
  * @param <cwd> Current Working Directory i.e. Location of the Git repository
  */
 func gitService(port string, cwd string) {
-
 	repoDir, repoName, err := createBareRepo(cwd)
 	if err != nil {
-		log.Error("Failed to create bare repo", "error", err)
+		logger.Logger.Error("Failed to create bare repo", "error", err)
+		return
+	}
+
+	// Setup .gitport
+	if err := os.MkdirAll(logger.WorkDir, 0755); err != nil {
+		logger.Logger.Error("Failed to create .gitport", "error", err)
+		return
+	}
+
+	logs := logger.InitFileLogs()
+	if logs != nil {
+		defer logs.Close()
+	} else {
+		logger.Logger.Error("Failed to initialize logs")
+		return
+	}
+
+	// Initialize the config file
+	err = InitConfig()
+	if err != nil {
+		logger.Logger.Error("Failed to initialize config", "error", err)
+		return
+	}
+
+	err = auth.InitUsers()
+	if err != nil {
+		logger.Logger.Error("Failed to initialize users", "error", err)
+		return
+	}
+
+	// Ensure the host is added as admin
+	err = auth.EnsureHostAdmin()
+	if err != nil {
+		logger.Logger.Error("Failed to ensure host admin", "error", err)
 		return
 	}
 
 	localIp := getLocalIP()
 	fullUri := "ssh://" + net.JoinHostPort(localIp, port) + "/" + repoName
 
-	// 1. Add the local server as a remote (e.g., named 'origin' or 'gitport')
-	//exec.Command("git", "remote", "add", "origin", fullUri).Run()
-
-	// 2. Set the upstream tracking
-	// This tells the local branch to track the remote branch
-	//exec.Command("git", "push", "--set-upstream", "origin", "master").Run()
-
 	// GitHooks implementation to allow global read write access
-	a := app{
-		git.ReadWriteAccess,
-	}
+	h := Hook{repoName}
 
+	hostKeyPath := filepath.Join(logger.WorkDir, ".ssh", "id_ed25519")
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort("0.0.0.0", port)),
-		wish.WithHostKeyPath(".ssh/id_ed25519"),
-
-		// // Accept all public keys
-		// ssh.PublicKeyAuth(
-		// 	func(ssh.Context, ssh.PublicKey) bool {
-		// 		return true
-		// 	},
-		// ),
-
-		// // Do not accept password auth
-		// ssh.PasswordAuth(
-		// 	func(ssh.Context, string) bool {
-		// 		return false
-		// 	},
-		// ),
-
+		wish.WithHostKeyPath(hostKeyPath),
+		wish.WithPublicKeyAuth(auth.AuthHandler),
 		wish.WithMiddleware(
-			git.Middleware(repoDir, a),
+			git.Middleware(repoDir, h),
 			gitListMiddleware(port, repoDir),
 			logging.Middleware(),
 		),
 	)
 
 	if err != nil {
-		log.Error("Could not start GitPort server", "error", err)
+		logger.Logger.Error("Could not start GitPort server", "error", err)
 	}
 
 	done := make(chan os.Signal, 1)
 
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	log.Info("Starting GitPort server", "repo", repoName, "URI", fullUri)
+	logger.Logger.Info("Starting GitPort server", "repo", repoName, "URI", fullUri)
 
 	go func() {
 		// 1. Wait a moment for the server to bind the port and start listening
@@ -170,19 +265,19 @@ func gitService(port string, cwd string) {
 
 	go func() {
 		if err = s.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-			log.Error("Could not start GitPort server", "error", err)
+			logger.Logger.Error("Could not start GitPort server", "error", err)
 			done <- nil
 		}
 	}()
 
 	<-done
 
-	log.Info("Stopping GitPort server")
+	logger.Logger.Info("Stopping GitPort server")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer func() { cancel() }()
 
 	if err := s.Shutdown(ctx); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-		log.Error("Could not start GitPort server", "error", err)
+		logger.Logger.Error("Could not start GitPort server", "error", err)
 	}
 }
 
@@ -201,7 +296,7 @@ func gitListMiddleware(port string, repoDir string) wish.Middleware {
 
 			dest, err := os.ReadDir(repoDir)
 			if err != nil && err != fs.ErrNotExist {
-				log.Error("Invalid repository", "error", err)
+				logger.Logger.Error("Invalid repository", "error", err)
 			}
 			if len(dest) > 0 {
 				fmt.Fprintf(sess, "\n### Repo Menu ###\n\n")
@@ -237,13 +332,13 @@ func ContainsFile(d []os.DirEntry, name string) bool {
 
 // configureLocalGit sets the remote 'origin' and configures the upstream branch
 func configureLocalGit(uri string) {
-	log.Info("Configuring local git remote...", "uri", uri)
+	logger.Logger.Info("Configuring local git remote...", "uri", uri)
 
 	// 1. Set the remote 'origin' to our new server URI
 	// We try to set-url first (in case it exists), if that fails, we add it.
 	if err := exec.Command("git", "remote", "set-url", "origin", uri).Run(); err != nil {
 		if err := exec.Command("git", "remote", "add", "origin", uri).Run(); err != nil {
-			log.Error("Failed to set git remote", "error", err)
+			logger.Logger.Error("Failed to set git remote", "error", err)
 			return
 		}
 	}
@@ -251,7 +346,7 @@ func configureLocalGit(uri string) {
 	// 2. Fetch from the remote to ensure we see the refs
 	// This requires the SSH server to be up and running!
 	if err := exec.Command("git", "fetch", "origin").Run(); err != nil {
-		log.Error("Failed to fetch from origin. Is the server reachable?", "error", err)
+		logger.Logger.Error("Failed to fetch from origin. Is the server reachable?", "error", err)
 		return
 	}
 
@@ -259,7 +354,7 @@ func configureLocalGit(uri string) {
 	// We need to know which branch to associate with the upstream
 	out, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
 	if err != nil {
-		log.Error("Failed to get current branch", "error", err)
+		logger.Logger.Error("Failed to get current branch", "error", err)
 		return
 	}
 	currentBranch := strings.TrimSpace(string(out))
@@ -268,11 +363,11 @@ func configureLocalGit(uri string) {
 	// This allows you to run 'git pull' and 'git push' without arguments
 	upstream := fmt.Sprintf("origin/%s", currentBranch)
 	if err := exec.Command("git", "branch", "--set-upstream-to="+upstream, currentBranch).Run(); err != nil {
-		log.Error("Failed to set upstream branch", "error", err)
+		logger.Logger.Error("Failed to set upstream branch", "error", err)
 		return
 	}
 
-	log.Info("Git remote configured successfully. You can now use 'git push' and 'git pull'.")
+	logger.Logger.Info("Git remote configured successfully. You can now use 'git push' and 'git pull'.")
 }
 
 /**
@@ -283,17 +378,23 @@ func configureLocalGit(uri string) {
  * @return the full ssh server URI
  */
 func Start(port string) {
+	logger.InitTermLogger()
 
 	cwd, err := os.Getwd()
 
 	alldirs, err := os.ReadDir(cwd)
 	if !ContainsFile(alldirs, ".git") {
-		log.Error("This directory doesn't contain a .git folder (Repo not initialized)")
+		logger.Logger.Error("This directory doesn't contain a .git folder (Repo not initialized)")
+		return
+	}
+
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		logger.Logger.Error("Could not create .gitport directory", "error", err)
 		return
 	}
 
 	if err != nil {
-		log.Error("Could not get current directory", "error", err)
+		logger.Logger.Error("Could not get current directory", "error", err)
 		return
 	}
 
