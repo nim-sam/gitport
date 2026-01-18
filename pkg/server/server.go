@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net"
 	"os"
 	"os/exec"
@@ -24,6 +23,7 @@ import (
 
 	"github.com/nim-sam/gitport/pkg/auth"
 	"github.com/nim-sam/gitport/pkg/logger"
+	"github.com/nim-sam/gitport/pkg/tui"
 )
 
 const (
@@ -256,7 +256,7 @@ func gitService(port string, cwd string) {
 		wish.WithPublicKeyAuth(auth.AuthHandler),
 		wish.WithMiddleware(
 			git.Middleware(repoDir, h),
-			gitListMiddleware(port, repoDir),
+			tui.Middleware(cwd),
 			logging.Middleware(),
 		),
 	)
@@ -293,39 +293,6 @@ func gitService(port string, cwd string) {
 
 	if err := s.Shutdown(ctx); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
 		logger.Logger.Error("Could not start GitPort server", "error", err)
-	}
-}
-
-func gitListMiddleware(port string, repoDir string) wish.Middleware {
-	return func(next ssh.Handler) ssh.Handler {
-		return func(sess ssh.Session) {
-
-			localIp := getLocalIP()
-
-			// Git will have a command included so only run this if there are no
-			// commands passed to ssh.
-			if len(sess.Command()) != 0 {
-				next(sess)
-				return
-			}
-
-			dest, err := os.ReadDir(repoDir)
-			if err != nil && err != fs.ErrNotExist {
-				logger.Logger.Error("Invalid repository", "error", err)
-			}
-			if len(dest) > 0 {
-				fmt.Fprintf(sess, "\n### Repo Menu ###\n\n")
-			}
-			for _, dir := range dest {
-				wish.Println(sess, fmt.Sprintf("• %s - ", dir.Name()))
-				wish.Println(sess, fmt.Sprintf("git clone ssh://%s/%s", net.JoinHostPort(localIp, port), dir.Name()))
-			}
-			wish.Printf(sess, "\n\n### Add some repos! ###\n\n")
-			wish.Printf(sess, "> cd some_repo\n")
-			wish.Printf(sess, "> git remote add wish_test ssh://%s/some_repo\n", net.JoinHostPort(localIp, port))
-			wish.Printf(sess, "> git push wish_test\n\n\n")
-			next(sess)
-		}
 	}
 }
 

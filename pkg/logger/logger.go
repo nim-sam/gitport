@@ -268,6 +268,7 @@ func SetConfig(newConfig ConfigData) {
 	configMu.Lock()
 	defer configMu.Unlock()
 	Config = newConfig
+	Logger.Info("Config updated in memory", "public", newConfig.Public, "default_perm", newConfig.DefaultPerm)
 }
 
 // ReloadConfig reloads config from disk (called when file changes)
@@ -292,7 +293,13 @@ func ReloadConfig() error {
 
 // WriteJSONFile writes JSON data to a file with watcher suspension
 func WriteJSONFile(filename string, data interface{}) error {
+	if WorkDir == "" {
+		Logger.Error("WorkDir not set, cannot write file", "file", filename)
+		return fmt.Errorf("WorkDir not set")
+	}
+	
 	filePath := filepath.Join(WorkDir, filename)
+	Logger.Info("Writing JSON file", "file", filename, "path", filePath)
 	
 	// Temporarily remove from watcher
 	if fileWatcher != nil {
@@ -308,11 +315,18 @@ func WriteJSONFile(filename string, data interface{}) error {
 
 	file, err := os.Create(filePath)
 	if err != nil {
+		Logger.Error("Failed to create file", "file", filename, "error", err)
 		return err
 	}
 	defer file.Close()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "    ")
-	return encoder.Encode(data)
+	err = encoder.Encode(data)
+	if err != nil {
+		Logger.Error("Failed to encode JSON", "file", filename, "error", err)
+	} else {
+		Logger.Info("File written successfully", "file", filename, "path", filePath)
+	}
+	return err
 }

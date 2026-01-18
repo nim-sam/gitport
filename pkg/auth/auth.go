@@ -77,7 +77,13 @@ func SaveUsers() error {
 	dataMu.RLock()
 	defer dataMu.RUnlock()
 
-	return logger.WriteJSONFile(logger.Users, Data)
+	err := logger.WriteJSONFile(logger.Users, Data)
+	if err != nil {
+		logger.Logger.Error("Failed to write users.json", "error", err)
+	} else {
+		logger.Logger.Info("Users saved to disk", "count", len(Data))
+	}
+	return err
 }
 
 // EnsureHostAdmin checks if any admin users exist, and if not, adds the host's SSH key as admin
@@ -197,4 +203,56 @@ func AuthHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	}
 
 	return true
+}
+// GetAllUsers returns a copy of all users for safe access
+func GetAllUsers() map[string]User {
+	dataMu.RLock()
+	defer dataMu.RUnlock()
+	
+	users := make(map[string]User, len(Data))
+	for k, v := range Data {
+		users[k] = v
+	}
+	return users
+}
+
+// UpdateUserPerm updates a user's permission and saves to disk
+func UpdateUserPerm(key, perm string) error {
+	dataMu.Lock()
+	user, exists := Data[key]
+	if !exists {
+		dataMu.Unlock()
+		logger.Logger.Warn("Cannot update permission: user not found", "key", key)
+		return nil
+	}
+	oldPerm := user.Perm
+	user.Perm = perm
+	Data[key] = user
+	dataMu.Unlock()
+	logger.Logger.Info("User permission updated", "user", user.Name, "old", oldPerm, "new", perm)
+	return SaveUsers()
+}
+
+// AddUser adds a new user and saves to disk
+func AddUser(key, name, perm string) error {
+	dataMu.Lock()
+	Data[key] = User{
+		Name: name,
+		Perm: perm,
+	}
+	dataMu.Unlock()
+	logger.Logger.Info("User added", "name", name, "perm", perm)
+	return SaveUsers()
+}
+
+// DeleteUser removes a user and saves to disk
+func DeleteUser(key string) error {
+	dataMu.Lock()
+	user, exists := Data[key]
+	if exists {
+		logger.Logger.Info("User deleted", "name", user.Name)
+	}
+	delete(Data, key)
+	dataMu.Unlock()
+	return SaveUsers()
 }
