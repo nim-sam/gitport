@@ -215,7 +215,8 @@ func fetchCommits(repoPath string, limit int) ([]list.Item, error) {
 
 	ref, err := repo.Head()
 	if err != nil {
-		return nil, err
+		// If there's no HEAD (empty repo), return empty list instead of error
+		return []list.Item{}, nil
 	}
 
 	cIter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
