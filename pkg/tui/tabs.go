@@ -1,25 +1,18 @@
 package tui
 
 import (
-	"strings"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 type sessionState int
 
-const (
-	tabCommits sessionState = iota
-	tabBranches
-	tabSettings
-)
-
 //var tabs = []string{"Commits", "Branches", "Settings"}
 
 type mainModel struct {
 	state     sessionState
 	activeTab int
+	dashboard dashboardModel
 	commitLog commitModel // Your existing model
 	logFinder logModel
 	width     int
@@ -40,24 +33,20 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		// IMPORTANT: Always pass size to sub-models so they can initialize
-		// Subtract a bit of height for your tab header
-		subMsg := tea.WindowSizeMsg{Width: msg.Width, Height: msg.Height - 4}
-		var newModel tea.Model
-		newModel, cmd = m.commitLog.Update(subMsg)
-		m.commitLog = newModel.(commitModel)
-		return m, cmd // Or append to cmds
+		// Propagate size to ALL models so they can calculate layout
+		// Subtract height for your header (tabs + spacing)
+		subMsg := tea.WindowSizeMsg{Width: m.width, Height: m.height - 4}
 
-		// // Propagate window size to sub-models
-		// var cmd tea.Cmd
-		// if m.activeTab == 0 {
-		// 	m.dashboard, cmd = m.dashboard.Update(msg)
-		// } else if m.activeTab == 1 {
-		// 	var newModel tea.Model
-		// 	newModel, cmd = m.commitLog.Update(msg)
-		// 	m.commitLog = newModel.(commitModel)
-		// }
-		// return m, cmd
+		var cmdD, cmdC, cmdL tea.Cmd
+		m.dashboard, cmdD = m.dashboard.Update(subMsg)
+
+		// If commitLog returns tea.Model, we assert it back
+		newCommit, cmdC := m.commitLog.Update(subMsg)
+		m.commitLog = newCommit.(commitModel)
+
+		m.logFinder.list, cmdL = m.logFinder.list.Update(subMsg)
+
+		return m, tea.Batch(cmdD, cmdC, cmdL)
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -71,7 +60,12 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Route regular messages (keys, etc.) only to the active tab
 	switch m.activeTab {
+	case 0:
+		// m.dashboard.Update returns (dashboardModel, tea.Cmd)
+		m.dashboard, cmd = m.dashboard.Update(msg)
+		cmds = append(cmds, cmd)
 	case 1:
+		// If your commitLog.Update returns (tea.Model, tea.Cmd)
 		var newModel tea.Model
 		newModel, cmd = m.commitLog.Update(msg)
 		m.commitLog = newModel.(commitModel)
@@ -85,38 +79,37 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m mainModel) View() string {
-	doc := strings.Builder{}
+	if m.width == 0 || m.height == 0 {
+		return "Initializing..."
+	}
 
-	// Tab Styling
+	// 1. Render Tabs
 	tabNames := []string{"Dashboard", "Commit History", "Logs"}
 	var tabs []string
 	for i, name := range tabNames {
-		style := lipgloss.NewStyle().Padding(0, 1).MarginRight(1)
+		style := lipgloss.NewStyle().Padding(0, 2)
 		if m.activeTab == i {
-			style = style.Foreground(lipgloss.Color("#FFFFFF")).
-				Background(lipgloss.Color("#5000ff")).Bold(true)
-		} else {
-			style = style.Foreground(lipgloss.Color("240"))
+			style = style.Background(lipgloss.Color("#5000ff")).Foreground(lipgloss.Color("#FFFFFF"))
 		}
 		tabs = append(tabs, style.Render(name))
 	}
-
-	// Header bar
 	header := lipgloss.JoinHorizontal(lipgloss.Top, tabs...)
-	doc.WriteString(header + "\n\n")
 
-	// Content Switching
+	// 2. Get Sub-view Content
+	var content string
 	switch m.activeTab {
-
 	case 0:
-		doc.WriteString(m.dashboard.View())
+		content = m.dashboard.View()
 	case 1:
-		doc.WriteString(m.commitLog.View())
+		content = m.commitLog.View()
 	case 2:
-		doc.WriteString(m.logFinder.list.View())
-		d
-
+		content = m.logFinder.list.View()
 	}
 
-	return doc.String()
+	// 3. Join vertically and ensure no accidental wrapping
+	// We use MaxHeight to prevent the TUI from "pushing" the terminal prompt down
+	return lipgloss.NewStyle().
+		Width(m.width).
+		MaxHeight(m.height).
+		Render(header + "\n\n" + content)
 }

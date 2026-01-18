@@ -1,6 +1,5 @@
 package tui
 
-
 import (
 	"fmt"
 	"io"
@@ -54,23 +53,11 @@ func (m commitModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		// case "ctrl+c":
-		// 	return m, tea.Quit
-
 		case "enter":
-			// 1. Toggle the focus boolean
 			m.focus = !m.focus
-
-			// 2. Sync the delegate's state to match
-			// When m.focus is true, listFocused should be false
 			m.list.SetDelegate(commitDelegate{listFocused: !m.focus})
-
-			// 3. Return nil to prevent the "enter" key from
-			// triggering the list's default "select" behavior
 			return m, nil
-
 		case "esc":
-			// Always return to the list on Esc
 			if m.focus {
 				m.focus = false
 				m.list.SetDelegate(commitDelegate{listFocused: true})
@@ -79,26 +66,29 @@ func (m commitModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		targetHeight := 16
+		targetHeight := msg.Height
 
-		// Width logic remains the same
-		listWidth := msg.Width/2 - 4
-		viewWidth := msg.Width - listWidth - 8
+		listWidth := msg.Width/2 - 2
+		viewWidth := msg.Width - listWidth - 4
 
+		// List gets full height
 		m.list.SetSize(listWidth, targetHeight)
 
-		// The viewport internal height MUST be targetHeight - 2
-		// so it doesn't try to render 16 lines inside a 14-line visible area
+		// Viewport: account for border (2 lines) + padding (0 vertical in your style)
+		// The border adds 2 lines, so viewport content area should be targetHeight - 2
+		viewportHeight := targetHeight - 2
+
 		if !m.ready {
-			m.viewport = viewport.New(viewWidth, targetHeight-2)
+			m.viewport = viewport.New(viewWidth, viewportHeight)
 			m.ready = true
 		} else {
 			m.viewport.Width = viewWidth
-			m.viewport.Height = targetHeight - 2
+			m.viewport.Height = viewportHeight
 		}
+
 	}
 
-	// --- Component Interaction Logic (Outside the switch) ---
+	// Logic for updating sub-components based on focus
 	if !m.focus {
 		var listCmd tea.Cmd
 		m.list, listCmd = m.list.Update(msg)
@@ -122,71 +112,21 @@ func (m commitModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m commitModel) View() string {
-	if !m.ready {
-		return "Initializing..."
-	}
-
-<<<<<<< HEAD
-	// Calculate dynamic but limited height
-	maxViewportHeight := 20 // Maximum height for viewport
-	viewportHeight := maxViewportHeight
-	if viewportHeight > m.viewport.Height {
-		viewportHeight = m.viewport.Height
-	}
-
-	// Set border color based on focus
-	borderColor := lipgloss.Color("#505050")
+	borderColor := lipgloss.Color("238")
 	if m.focus {
 		borderColor = lipgloss.Color("#5000ff")
 	}
 
-	listView := lipgloss.NewStyle().
-		Width(m.list.Width()).
-		Height(viewportHeight).
-		Render(m.list.View())
-
-	// Create a fixed-height container for viewport
-	viewportContainer := lipgloss.NewStyle().
-		Width(m.viewport.Width).
-		Height(viewportHeight).
+	vpStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
-		Render(m.viewport.View())
+		Padding(0, 1)
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, listView, viewportContainer)
-=======
-	activeColor := lipgloss.Color("#5000ff")
-	inactiveColor := lipgloss.Color("240")
-
-	var viewBorderCol lipgloss.Color
-	if m.focus {
-		viewBorderCol = activeColor
-	} else {
-		viewBorderCol = inactiveColor
-	}
-
-	// 1. List Style: Force it to stretch to targetHeight
-	// We don't add a border here so it stays clean
-	listSide := lipgloss.NewStyle().
-		Width(m.list.Width()).
-		Padding(0, 1).
-		Render(m.list.View())
-
-	// 2. Viewport Style: Total height (including border) must be targetHeight
-	// Since the border takes 2 rows (top + bottom), we set Height to targetHeight - 2
-	viewportSide := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(viewBorderCol).
-		Padding(0, 1).
-		Width(m.viewport.Width).
-		Render(m.viewport.View())
-
-	// Join them side-by-side.
-	// JoinHorizontal(lipgloss.Top) ensures they align at the very first line.
-	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, listSide, viewportSide)
-
-	return docStyle.Render(mainContent)
->>>>>>> auth
+	return lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		m.list.View(),
+		vpStyle.Render(m.viewport.View()),
+	)
 }
 
 type commitDelegate struct {
