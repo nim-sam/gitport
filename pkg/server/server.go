@@ -21,6 +21,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/charmbracelet/wish/git"
@@ -31,8 +32,16 @@ import (
 )
 
 const (
-	dir = ".gitport"
+	gpConfig = ".gitport"
 )
+
+// GitPortServer represents the main server instance
+type GpServer struct {
+	Port      string
+	RepoDir   string
+	RepoName  string
+	configDir string
+}
 
 // TUI Styles
 var (
@@ -107,7 +116,6 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case 0: // Public selection
 					m.public = (m.choice == "Yes")
 					m.step = 1
-					// Update list for permissions
 					items := []list.Item{
 						configItem("none"),
 						configItem("read"),
@@ -146,6 +154,7 @@ func (m configModel) View() string {
 	return "\n" + m.list.View()
 }
 
+// runConfigTUI presents a TUI for configuring server settings
 func runConfigTUI() (logger.ConfigData, error) {
 	items := []list.Item{
 		configItem("Yes"),
@@ -274,6 +283,13 @@ func (m loadingModel) View() string {
 	return output.String()
 }
 
+/*
+ * runLoadingAnimation starts loading animation for a command execution
+ *
+ * @param cmd command to execute
+ * @param taskName name of the task for display
+ * @return error if any
+ */
 func runLoadingAnimation(cmd *exec.Cmd, taskName string) error {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -324,73 +340,18 @@ func runLoadingAnimation(cmd *exec.Cmd, taskName string) error {
 	return err
 }
 
-func InitConfig() error {
-	file, err := os.Open(filepath.Join(logger.WorkDir, logger.Conf))
-	if err != nil {
-		if os.IsNotExist(err) {
-			logger.Logger.Warn("File not found, creating default config", "file", logger.Conf)
-
-			// Use TUI for config setup
-			newConfig, err := runConfigTUI()
-			if err != nil {
-				// Fall back to CLI if TUI fails
-				logger.Logger.Warn("TUI failed, falling back to CLI", "error", err)
-
-				var input string
-				fmt.Print("Do you want the server to be public (allow guest users)? (y/n): ")
-				fmt.Scan(&input)
-				newConfig.Public = (strings.ToLower(input) == "y")
-
-				fmt.Print("What is the default permission of users (none, read, write, admin): ")
-				fmt.Scan(&input)
-				switch strings.ToLower(input) {
-				case "read", "write", "admin":
-					newConfig.DefaultPerm = input
-				default:
-					newConfig.DefaultPerm = "none"
-				}
-			}
-
-			logger.SetConfig(newConfig)
-
-			if err := logger.WriteJSONFile(logger.Conf, newConfig); err != nil {
-				return err
-			}
-
-			return nil
-		}
-
-		return err
-	}
-	defer file.Close()
-
-	bytes, err := io.ReadAll(file)
-	if err != nil {
-		return err
-	}
-
-	var newConfig logger.ConfigData
-	err = json.Unmarshal(bytes, &newConfig)
-	if err != nil {
-		return err
-	}
-
-	logger.SetConfig(newConfig)
-
-	return nil
-}
-
+// Hook implements Git hook callbacks for authentication and access control
 type Hook struct {
 	repoName string
 }
 
+// AuthRepo determines the access level for a user based on their key and repository
 func (h Hook) AuthRepo(repo string, key ssh.PublicKey) git.AccessLevel {
 	if repo != h.repoName {
 		return git.NoAccess
 	}
 
 	userKey := key.Type() + " " + base64.StdEncoding.EncodeToString(key.Marshal())
-
 	user, exist := auth.GetUserByKey(userKey)
 	if !exist {
 		return git.NoAccess
@@ -408,14 +369,17 @@ func (h Hook) AuthRepo(repo string, key ssh.PublicKey) git.AccessLevel {
 	}
 }
 
+// Push logs push operations to the repository
 func (h Hook) Push(repo string, key ssh.PublicKey) {
 	logger.Logger.Info("Push", "repo", repo)
 }
 
+// Fetch logs fetch operations from the repository
 func (h Hook) Fetch(repo string, key ssh.PublicKey) {
 	logger.Logger.Info("Fetch", "repo", repo)
 }
 
+// getLocalIP returns the local IP address of the machine
 func getLocalIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -431,10 +395,10 @@ func getLocalIP() string {
 	return "localhost"
 }
 
-func createBareRepo(cwd string) (string, string, error) {
+// initBareRepo creates a bare Git repository for serving
+func initBareRepo(cwd string) (string, string, error) {
 	repoName := filepath.Base(cwd) + ".git"
 	configDir, err := os.UserConfigDir()
-
 	if err != nil {
 		logger.Logger.Error("Couldn't find user config directory", "error", err)
 		return "", "", err
@@ -442,7 +406,6 @@ func createBareRepo(cwd string) (string, string, error) {
 
 	baseDir := filepath.Join(configDir, "gitport")
 	barePath := filepath.Join(baseDir, repoName)
-	logger.WorkDir = filepath.Join(barePath, dir)
 
 	// Ensure the base directory exists
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
@@ -456,11 +419,9 @@ func createBareRepo(cwd string) (string, string, error) {
 	}
 
 	// Create bare repository with loading animation
-	cmd := exec.Command("git", "clone", "--bare", cwd, barePath)
-
-	// Run with loading animation
+	err = exec.Command("git", "clone", "--bare", cwd, barePath).Run()
 	logger.Logger.Info("Creating bare repository...")
-	err = runLoadingAnimation(cmd, "git clone")
+	//err = runLoadingAnimation(cmd, "git clone")
 	if err != nil {
 		return "", "", fmt.Errorf("failed to clone bare repository: %w", err)
 	}
@@ -468,84 +429,157 @@ func createBareRepo(cwd string) (string, string, error) {
 	return baseDir, repoName, nil
 }
 
-func gitService(port string, cwd string) {
-	repoDir, repoName, err := createBareRepo(cwd)
+// InitConfig initializes or loads server configuration
+func (s GpServer) initConfig() error {
+
+	// 1. Set the directory path in the logger
+	logger.ConfigDir = s.configDir
+
+	// Setup .gitport directory
+	if err := os.MkdirAll(s.configDir, 0755); err != nil {
+		return fmt.Errorf("failed to create .gitport directory: %w", err)
+	}
+
+	// 2. Define the actual path to the FILE, not the directory
+	configFilePath := filepath.Join(s.configDir, logger.Conf) // logger.Conf is "config.json"
+
+	// 3. Open the FILE
+	file, err := os.Open(configFilePath)
 	if err != nil {
-		logger.Logger.Error("Failed to create bare repo", "error", err)
-		return
+		if os.IsNotExist(err) {
+			// This will now correctly trigger when config.json is missing
+			return createDefaultConfig()
+		}
+		return err
 	}
+	defer file.Close()
 
-	// Setup .gitport
-	if err := os.MkdirAll(logger.WorkDir, 0755); err != nil {
-		logger.Logger.Error("Failed to create .gitport", "error", err)
-		return
-	}
-
-	logs := logger.InitFileLogs()
-	if logs != nil {
-		defer logs.Close()
-	} else {
-		logger.Logger.Error("Failed to initialize logs")
-		return
-	}
-
-	// Initialize the config file
-	err = InitConfig()
+	bytes, err := io.ReadAll(file)
 	if err != nil {
-		logger.Logger.Error("Failed to initialize config", "error", err)
-		return
+		return err
 	}
 
-	err = auth.InitUsers()
+	var newConfig logger.ConfigData
+	err = json.Unmarshal(bytes, &newConfig)
 	if err != nil {
-		logger.Logger.Error("Failed to initialize users", "error", err)
-		return
+		return err
 	}
 
-	// Ensure the host is added as admin
-	err = auth.EnsureHostAdmin()
+	logger.SetConfig(newConfig)
+	return nil
+}
+
+// createDefaultConfig creates a new configuration file with user input
+func createDefaultConfig() error {
+	logger.Logger.Warn("File not found, creating default config", "file", logger.Conf)
+
+	// Use TUI for config setup
+	newConfig, err := runConfigTUI()
 	if err != nil {
-		logger.Logger.Error("Failed to ensure host admin", "error", err)
-		return
+		logger.Logger.Warn("TUI failed, falling back to CLI", "error", err)
+		newConfig = getCLIConfig()
 	}
 
-	// Set callback for reloading users when file changes
+	logger.SetConfig(newConfig)
+	return logger.WriteJSONFile(logger.Conf, newConfig)
+}
+
+// getCLIConfig prompts user for configuration via CLI
+func getCLIConfig() logger.ConfigData {
+	var config logger.ConfigData
+	var input string
+
+	fmt.Print("Do you want the server to be public (allow guest users)? (y/n): ")
+	fmt.Scan(&input)
+	config.Public = (strings.ToLower(input) == "y")
+
+	fmt.Print("What is the default permission of users (none, read, write, admin): ")
+	fmt.Scan(&input)
+	switch strings.ToLower(input) {
+	case "read", "write", "admin":
+		config.DefaultPerm = input
+	default:
+		config.DefaultPerm = "none"
+	}
+
+	return config
+}
+
+// initializeServerComponents sets up all server components (logs, auth, file watcher)
+func (s *GpServer) initGitPortServer() error {
+
+	logger.ConfigDir = s.configDir
+
+	// Initialize file logging
+	logs := logger.Logger.InitFileLogs(s.configDir)
+	if logs == nil {
+		return fmt.Errorf("failed to initialize logs")
+	}
+	defer logs.Close()
+
+	// Initialize users and authentication
+	if err := auth.InitUsers(); err != nil {
+		return fmt.Errorf("failed to initialize users: %w", err)
+	}
+
+	if err := auth.EnsureHostAdmin(); err != nil {
+		return fmt.Errorf("failed to ensure host admin: %w", err)
+	}
+
+	// Set up file change callbacks
 	logger.SetUsersReloadCallback(auth.ReloadUsers)
 
-	// Initialize file watcher for users.json and config.json
-	err = logger.InitFileWatcher()
-	if err != nil {
-		logger.Logger.Error("Failed to initialize file watcher", "error", err)
-		return
+	// Initialize file watcher
+	if err := logger.InitFileWatcher(); err != nil {
+		return fmt.Errorf("failed to initialize file watcher: %w", err)
 	}
-	defer logger.CloseFileWatcher()
 
-	localIp := getLocalIP()
-	fullUri := "ssh://" + net.JoinHostPort(localIp, port) + "/" + repoName
+	s.initConfig()
 
-	// GitHooks implementation to allow global read write access
-	h := Hook{repoName}
+	return nil
+}
 
-	hostKeyPath := filepath.Join(logger.WorkDir, ".ssh", "id_ed25519")
-	s, err := wish.NewServer(
-		wish.WithAddress(net.JoinHostPort("0.0.0.0", port)),
+// startGitPortServer starts the SSH server with Git middleware
+func (s GpServer) startGitPortServer() error {
+	localIP := getLocalIP()
+	fullURI := "ssh://" + net.JoinHostPort(localIP, s.Port) + "/" + s.RepoName
+
+	hook := Hook{repoName: s.RepoName}
+	hostKeyPath := filepath.Join(s.configDir, ".ssh", "id_ed25519")
+
+	server, err := wish.NewServer(
+		wish.WithAddress(net.JoinHostPort("0.0.0.0", s.Port)),
 		wish.WithHostKeyPath(hostKeyPath),
 		wish.WithPublicKeyAuth(auth.AuthHandler),
 		wish.WithMiddleware(
-			git.Middleware(repoDir, h),
-			tui.Middleware(cwd),
+			git.Middleware(s.RepoDir, hook),
+			tui.Middleware("."),
 		),
 	)
 
 	if err != nil {
-		logger.Logger.Error("Could not start GitPort server", "error", err)
+		return fmt.Errorf("could not create server: %w", err)
 	}
 
-	done := make(chan os.Signal, 1)
+	// Start server with loading animation
+	showServerStartupAnimation(s.RepoName, fullURI)
 
+	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// Create and run a loading animation for server startup
+	go func() {
+		if err = server.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
+			logger.Logger.Error("Could not start GitPort server", "error", err)
+			done <- nil
+		}
+	}()
+
+	<-done
+	return shutdownServer(server)
+}
+
+// showServerStartupAnimation displays a loading animation during server startup
+func showServerStartupAnimation(repoName, fullURI string) {
 	go func() {
 		s := spinner.New()
 		s.Spinner = spinner.Dot
@@ -558,15 +592,12 @@ func gitService(port string, cwd string) {
 
 		p := tea.NewProgram(model)
 
-		// Send updates to the loading animation
 		go func() {
 			time.Sleep(1 * time.Second)
 			p.Send(loadingMsg(fmt.Sprintf("Repository: %s", repoName)))
-			p.Send(loadingMsg(fmt.Sprintf("Server URI: %s", fullUri)))
+			p.Send(loadingMsg(fmt.Sprintf("Server URI: %s", fullURI)))
 			p.Send(loadingMsg("Configuring local git remote..."))
-
-			configureLocalGit(fullUri)
-
+			configureLocalGit(fullURI)
 			time.Sleep(2 * time.Second)
 			p.Send("done")
 		}()
@@ -575,26 +606,22 @@ func gitService(port string, cwd string) {
 	}()
 
 	time.Sleep(3 * time.Second) // Give time for animation to show
-	logger.Logger.Info("Starting GitPort server", "repo", repoName, "URI", fullUri)
-
-	go func() {
-		if err = s.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-			logger.Logger.Error("Could not start GitPort server", "error", err)
-			done <- nil
-		}
-	}()
-
-	<-done
-
-	logger.Logger.Info("Stopping GitPort server")
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer func() { cancel() }()
-
-	if err := s.Shutdown(ctx); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-		logger.Logger.Error("Could not stop GitPort server", "error", err)
-	}
+	logger.Logger.Info("Starting GitPort server", "repo", repoName, "URI", fullURI)
 }
 
+// shutdownServer gracefully shuts down the server
+func shutdownServer(server *ssh.Server) error {
+	logger.Logger.Info("Stopping GitPort server")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
+		return fmt.Errorf("could not stop GitPort server: %w", err)
+	}
+	return nil
+}
+
+// ContainsFile checks if a file exists in a directory
 func ContainsFile(d []os.DirEntry, name string) bool {
 	for _, entry := range d {
 		if entry.Name() == name {
@@ -604,6 +631,7 @@ func ContainsFile(d []os.DirEntry, name string) bool {
 	return false
 }
 
+// configureLocalGit sets up the local Git repository to use the server as remote
 func configureLocalGit(uri string) {
 	logger.Logger.Info("Configuring local git remote...", "uri", uri)
 
@@ -615,30 +643,19 @@ func configureLocalGit(uri string) {
 		}
 	}
 
-	// Fetch from the remote
+	// Fetch from remote
 	if err := exec.Command("git", "fetch", "origin").Run(); err != nil {
 		logger.Logger.Warn("Could not fetch from origin. If this is a new repo, this is normal.", "error", err)
 	}
 
-	// Determine current branch name
-	var currentBranch string
-	out, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	setUpstreamBranch()
+}
 
-	if err != nil {
-		// HEAD is invalid (empty repo)
-		defaultBranch, configErr := exec.Command("git", "config", "--get", "init.defaultBranch").Output()
-		if configErr == nil && len(defaultBranch) > 0 {
-			currentBranch = strings.TrimSpace(string(defaultBranch))
-		} else {
-			currentBranch = "master"
-		}
-		logger.Logger.Info("Empty repository detected. Future commits will track", "branch", currentBranch)
-	} else {
-		currentBranch = strings.TrimSpace(string(out))
-	}
-
-	// Set the upstream (tracking) information
+// setUpstreamBranch configures the upstream tracking branch for the current repository
+func setUpstreamBranch() {
+	currentBranch := getCurrentBranch()
 	upstream := fmt.Sprintf("origin/%s", currentBranch)
+
 	if err := exec.Command("git", "branch", "--set-upstream-to="+upstream, currentBranch).Run(); err != nil {
 		logger.Logger.Info("Remote branch not found yet. To push and link, run:",
 			"command", fmt.Sprintf("git push -u origin %s", currentBranch))
@@ -647,24 +664,94 @@ func configureLocalGit(uri string) {
 	}
 }
 
-func Start(port string) {
-	cwd, err := os.Getwd()
+// getCurrentBranch determines the current Git branch name
+func getCurrentBranch() string {
+	out, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	if err == nil && len(out) > 0 {
+		return strings.TrimSpace(string(out))
+	}
 
-	alldirs, err := os.ReadDir(cwd)
-	if !ContainsFile(alldirs, ".git") {
-		logger.Logger.Error("This directory doesn't contain a .git folder (Repo not initialized)")
+	// HEAD is invalid (empty repo) - get default branch
+	defaultBranch, configErr := exec.Command("git", "config", "--get", "init.defaultBranch").Output()
+	if configErr == nil && len(defaultBranch) > 0 {
+		branch := strings.TrimSpace(string(defaultBranch))
+		logger.Logger.Info("Empty repository detected. Future commits will track", "branch", branch)
+		return branch
+	}
+
+	return "master"
+}
+
+// Initialize GitPort server
+func Init() {
+	cwd, _ := os.Getwd()
+	dirs, _ := os.ReadDir(cwd)
+
+	if !ContainsFile(dirs, ".git") {
+		log.Error("This directory doesn't contain a .git folder (Repo not initialized)")
 		return
 	}
 
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		logger.Logger.Error("Could not create .gitport directory", "error", err)
+	repoDir, repoName, err := initBareRepo(cwd)
+	if err != nil {
+		log.Error("Failed to create bare repo", "error", err)
+		return
+	}
+
+	// Initialize server struct
+	userConf, _ := os.UserConfigDir()
+	gpConf := filepath.Join(userConf, "gitport", repoName, ".gitport")
+
+	server := GpServer{
+		RepoName:  repoName,
+		RepoDir:   repoDir,
+		configDir: gpConf,
+	}
+
+	if err := server.initConfig(); err != nil {
+		log.Error("Failed to initialize config", "error", err)
+		return
+	}
+
+	if err := server.initGitPortServer(); err != nil {
+		log.Error("Failed to initialize server components", "error", err)
+		return
+	}
+}
+
+// Start GitPort server on the specified port
+func Start(port string) {
+	cwd, _ := os.Getwd()
+	repoDir, repoName, err := initBareRepo(cwd)
+
+	if dirs, _ := os.ReadDir(cwd); !ContainsFile(dirs, ".git") {
+		log.Error("This directory doesn't contain a .git folder (Repo not initialized)")
 		return
 	}
 
 	if err != nil {
-		logger.Logger.Error("Could not get current directory", "error", err)
+		log.Error("Failed to fetch bare repo", "error", err)
 		return
 	}
 
-	gitService(port, cwd)
+	// Initialize server struct
+	userConf, _ := os.UserConfigDir()
+	gpConf := filepath.Join(userConf, "gitport", repoName, ".gitport")
+
+	server := GpServer{
+		RepoName:  repoName,
+		RepoDir:   repoDir,
+		Port:      port,
+		configDir: gpConf,
+	}
+
+	if err := server.initGitPortServer(); err != nil {
+		logger.Logger.Error("Failed to initialize server components", "error", err)
+		return
+	}
+	defer logger.CloseFileWatcher()
+
+	if err := server.startGitPortServer(); err != nil {
+		logger.Logger.Error("Server error", "error", err)
+	}
 }

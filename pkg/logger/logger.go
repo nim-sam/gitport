@@ -12,7 +12,6 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/fsnotify/fsnotify"
-	"github.com/muesli/termenv"
 )
 
 const (
@@ -21,29 +20,33 @@ const (
 	Conf  = "config.json"
 )
 
+// ConfigData holds the configuration parameters for the server
 type ConfigData struct {
 	Public      bool   `json:"public"`
 	DefaultPerm string `json:"default_perm"`
 }
 
-var WorkDir string
+var ConfigDir string
 var Config ConfigData
 var configMu sync.RWMutex
 
-type MultiLogger struct {
-	LogFile    *os.File
-	TermLogger *log.Logger
-}
-
-var Logger = MultiLogger{
-	LogFile: nil,
-	//TermLogger: log.New(os.Stdout),
-	TermLogger: nil,
+// sLogger provides file logging capabilities
+type sLogger struct {
+	LogFile *os.File
+	WorkDir string
 }
 
 var fileWatcher *fsnotify.Watcher
 var onUsersChanged func() error
 
+// Initialize server logger with default terminal logger
+var Logger = sLogger{
+	LogFile: nil,
+	WorkDir: ConfigDir,
+}
+
+// InitTermLogger configures the terminal logger with default settings
+/*
 func InitTermLogger() {
 	// Set global defaults for all loggers (including middleware)
 	log.SetFormatter(log.TextFormatter)
@@ -56,11 +59,19 @@ func InitTermLogger() {
 	Logger.TermLogger.SetReportTimestamp(true)
 	Logger.TermLogger.SetColorProfile(termenv.TrueColor)
 }
+*/
 
-func InitFileLogs() *os.File {
-	filePath := filepath.Join(WorkDir, Logs)
+// InitFileLogs initializes file-based logging with CSV format
+func (m *sLogger) InitFileLogs(configDir string) *os.File {
 
-	// Check if file exists to determine if we need to write header
+	m.WorkDir = configDir
+
+	if m.WorkDir == "" {
+		log.Error("WorkDir not set, cannot initialize file logs")
+		return nil
+	}
+
+	filePath := filepath.Join(m.WorkDir, Logs)
 	_, err := os.Stat(filePath)
 	fileExists := err == nil
 
@@ -70,7 +81,7 @@ func InitFileLogs() *os.File {
 		return nil
 	}
 
-	Logger.LogFile = file
+	m.LogFile = file
 
 	// Write CSV header if file is new
 	if !fileExists {
@@ -88,7 +99,8 @@ func SetUsersReloadCallback(callback func() error) {
 	onUsersChanged = callback
 }
 
-func (m *MultiLogger) writeCSV(level string, msg interface{}, keyvals ...interface{}) {
+// writeCSV writes a log entry to the CSV file with proper formatting
+func (m *sLogger) writeCSV(level string, msg interface{}, keyvals ...interface{}) {
 	if m.LogFile == nil {
 		return
 	}
@@ -97,7 +109,13 @@ func (m *MultiLogger) writeCSV(level string, msg interface{}, keyvals ...interfa
 	date := now.Format("2006-01-02")
 	timeStr := now.Format("15:04:05")
 
-	// Build message with key-value pairs
+	msgStr := m.formatMessage(msg, keyvals...)
+	line := fmt.Sprintf("%s,%s,%s,%s\n", date, timeStr, level, msgStr)
+	m.LogFile.WriteString(line)
+}
+
+// formatMessage formats the message with key-value pairs and proper CSV escaping
+func (m *sLogger) formatMessage(msg interface{}, keyvals ...interface{}) string {
 	msgStr := fmt.Sprintf("%v", msg)
 	if len(keyvals) > 0 {
 		msgStr += " "
@@ -113,40 +131,34 @@ func (m *MultiLogger) writeCSV(level string, msg interface{}, keyvals ...interfa
 		}
 	}
 
-	// Escape quotes and commas in message
+	// Escape quotes and commas in message for CSV
 	msgStr = strings.ReplaceAll(msgStr, "\"", "\"\"")
 	if strings.ContainsAny(msgStr, ",\n\"") {
 		msgStr = "\"" + msgStr + "\""
 	}
 
-	line := fmt.Sprintf("%s,%s,%s,%s\n", date, timeStr, level, msgStr)
-	m.LogFile.WriteString(line)
+	return msgStr
 }
 
-func (m *MultiLogger) Info(msg interface{}, keyvals ...interface{}) {
-	if m.LogFile != nil {
-		m.writeCSV("INFO", msg, keyvals...)
-	}
-	if m.TermLogger != nil {
-		m.TermLogger.Info(msg, keyvals...)
-	}
+// Info logs an informational message
+func (m *sLogger) Info(msg interface{}, keyvals ...interface{}) {
+	m.log("INFO", msg, keyvals...)
 }
 
-func (m *MultiLogger) Warn(msg interface{}, keyvals ...interface{}) {
-	if m.LogFile != nil {
-		m.writeCSV("WARN", msg, keyvals...)
-	}
-	if m.TermLogger != nil {
-		m.TermLogger.Warn(msg, keyvals...)
-	}
+// Warn logs a warning message
+func (m *sLogger) Warn(msg interface{}, keyvals ...interface{}) {
+	m.log("WARN", msg, keyvals...)
 }
 
-func (m *MultiLogger) Error(msg interface{}, keyvals ...interface{}) {
+// Error logs an error message
+func (m *sLogger) Error(msg interface{}, keyvals ...interface{}) {
+	m.log("ERROR", msg, keyvals...)
+}
+
+// log is a helper method to write logs to both file and terminal
+func (m *sLogger) log(level string, msg interface{}, keyvals ...interface{}) {
 	if m.LogFile != nil {
-		m.writeCSV("ERROR", msg, keyvals...)
-	}
-	if m.TermLogger != nil {
-		m.TermLogger.Error(msg, keyvals...)
+		m.writeCSV(level, msg, keyvals...)
 	}
 }
 
@@ -159,30 +171,20 @@ func InitFileWatcher() error {
 
 	fileWatcher = watcher
 
-	// Add files to watch
-	usersPath := filepath.Join(WorkDir, Users)
-	configPath := filepath.Join(WorkDir, Conf)
-
-	// Watch the files if they exist
-	if _, err := os.Stat(usersPath); err == nil {
-		if err := watcher.Add(usersPath); err != nil {
-			Logger.Warn("Could not watch users.json", "error", err)
-		} else {
-			Logger.Info("Started watching file", "file", Users)
+	// Watch both configuration files
+	filesToWatch := []string{Users, Conf}
+	for _, filename := range filesToWatch {
+		filePath := filepath.Join(ConfigDir, filename)
+		if _, err := os.Stat(filePath); err == nil {
+			if err := watcher.Add(filePath); err != nil {
+				Logger.Warn("Could not watch file", "file", filename, "error", err)
+			} else {
+				Logger.Info("Started watching file", "file", filename)
+			}
 		}
 	}
 
-	if _, err := os.Stat(configPath); err == nil {
-		if err := watcher.Add(configPath); err != nil {
-			Logger.Warn("Could not watch config.json", "error", err)
-		} else {
-			Logger.Info("Started watching file", "file", Conf)
-		}
-	}
-
-	// Start watching in a goroutine
 	go watchFiles()
-
 	return nil
 }
 
@@ -198,42 +200,7 @@ func watchFiles() {
 			if !ok {
 				return
 			}
-
-			// Log write operations
-			if event.Has(fsnotify.Write) {
-				fileName := filepath.Base(event.Name)
-				Logger.Info("File modified externally", "file", fileName, "path", event.Name)
-
-				// Reload the modified file
-				if fileName == Users {
-					// Import cycle issue - we'll need to use a callback
-					if onUsersChanged != nil {
-						if err := onUsersChanged(); err != nil {
-							Logger.Error("Failed to reload users", "error", err)
-						}
-					}
-				} else if fileName == Conf {
-					if err := ReloadConfig(); err != nil {
-						Logger.Error("Failed to reload config", "error", err)
-					}
-				}
-			}
-
-			// Log rename/remove operations
-			if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
-				fileName := filepath.Base(event.Name)
-				Logger.Warn("File removed or renamed", "file", fileName, "path", event.Name)
-
-				// Try to re-add the watch after a short delay (file might be recreated)
-				go func(path string) {
-					time.Sleep(100 * time.Millisecond)
-					if _, err := os.Stat(path); err == nil {
-						if err := fileWatcher.Add(path); err == nil {
-							Logger.Info("Resumed watching file", "file", filepath.Base(path))
-						}
-					}
-				}(event.Name)
-			}
+			handleFileEvent(event)
 
 		case err, ok := <-fileWatcher.Errors:
 			if !ok {
@@ -242,6 +209,53 @@ func watchFiles() {
 			Logger.Error("File watcher error", "error", err)
 		}
 	}
+}
+
+// handleFileEvent processes file system events
+func handleFileEvent(event fsnotify.Event) {
+	fileName := filepath.Base(event.Name)
+
+	// Handle write operations
+	if event.Has(fsnotify.Write) {
+		Logger.Info("File modified externally", "file", fileName, "path", event.Name)
+		reloadModifiedFile(fileName, event.Name)
+	}
+
+	// Handle rename/remove operations
+	if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
+		Logger.Warn("File removed or renamed", "file", fileName, "path", event.Name)
+		tryReAddToWatcher(event.Name)
+	}
+}
+
+// reloadModifiedFile reloads the configuration when a file is modified
+func reloadModifiedFile(fileName, filePath string) {
+	switch fileName {
+	case Users:
+		if onUsersChanged != nil {
+			if err := onUsersChanged(); err != nil {
+				Logger.Error("Failed to reload users", "error", err)
+			}
+		}
+	case Conf:
+		if err := ReloadConfig(); err != nil {
+			Logger.Error("Failed to reload config", "error", err)
+		}
+	}
+}
+
+// tryReAddToWatcher attempts to re-add a file to the watcher after a delay
+func tryReAddToWatcher(filePath string) {
+	go func(path string) {
+		time.Sleep(100 * time.Millisecond)
+		if _, err := os.Stat(path); err == nil {
+			if fileWatcher != nil {
+				if err := fileWatcher.Add(path); err == nil {
+					Logger.Info("Resumed watching file", "file", filepath.Base(path))
+				}
+			}
+		}
+	}(filePath)
 }
 
 // CloseFileWatcher closes the file watcher
@@ -277,7 +291,7 @@ func SetConfig(newConfig ConfigData) {
 func ReloadConfig() error {
 	Logger.Info("Detected external change, reloading config", "file", Conf)
 
-	file, err := os.Open(filepath.Join(WorkDir, Conf))
+	file, err := os.Open(filepath.Join(ConfigDir, Conf))
 	if err != nil {
 		return err
 	}
@@ -289,32 +303,45 @@ func ReloadConfig() error {
 	}
 
 	SetConfig(newConfig)
-	Logger.Info("Config refreshed", "file", Conf, "public", newConfig.Public, "default_perm", newConfig.DefaultPerm)
 	return nil
 }
 
 // WriteJSONFile writes JSON data to a file with watcher suspension
 func WriteJSONFile(filename string, data interface{}) error {
-	if WorkDir == "" {
-		Logger.Error("WorkDir not set, cannot write file", "file", filename)
-		return fmt.Errorf("WorkDir not set")
+	if ConfigDir == "" {
+		Logger.Error("ConfigDir not set, cannot write file", "file", filename)
+		return fmt.Errorf("ConfigDir not set")
 	}
 
-	filePath := filepath.Join(WorkDir, filename)
+	filePath := filepath.Join(ConfigDir, filename)
 	Logger.Info("Writing JSON file", "file", filename, "path", filePath)
 
-	// Temporarily remove from watcher
+	// Temporarily remove from watcher to avoid triggering reload
+	suspendFileWatch(filePath)
+	defer resumeFileWatch(filePath)
+
+	return writeJSONToFile(filePath, filename, data)
+}
+
+// suspendFileWatch temporarily removes a file from the watcher
+func suspendFileWatch(filePath string) {
 	if fileWatcher != nil {
 		fileWatcher.Remove(filePath)
-		defer func() {
-			// Re-add to watcher after a short delay
-			time.Sleep(50 * time.Millisecond)
-			if _, err := os.Stat(filePath); err == nil {
-				fileWatcher.Add(filePath)
-			}
-		}()
 	}
+}
 
+// resumeFileWatch re-adds a file to the watcher after a delay
+func resumeFileWatch(filePath string) {
+	if fileWatcher != nil {
+		time.Sleep(50 * time.Millisecond)
+		if _, err := os.Stat(filePath); err == nil {
+			fileWatcher.Add(filePath)
+		}
+	}
+}
+
+// writeJSONToFile performs the actual JSON file writing
+func writeJSONToFile(filePath, filename string, data interface{}) error {
 	file, err := os.Create(filePath)
 	if err != nil {
 		Logger.Error("Failed to create file", "file", filename, "error", err)
@@ -336,19 +363,18 @@ func WriteJSONFile(filename string, data interface{}) error {
 // ReadLogs reads the logs.csv file and returns it as a list of lists.
 // Each inner list represents a row: [Date, Time, Level, Message]
 func ReadLogs() ([][]string, error) {
-	filePath := filepath.Join(WorkDir, Logs)
+	if ConfigDir == "" {
+		return nil, fmt.Errorf("ConfigDir not set")
+	}
 
-	// Open the file for reading
+	filePath := filepath.Join(ConfigDir, Logs)
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open log file: %w", err)
 	}
 	defer file.Close()
 
-	// Initialize CSV reader
 	reader := csv.NewReader(file)
-
-	// Read all records at once
 	records, err := reader.ReadAll()
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse CSV: %w", err)

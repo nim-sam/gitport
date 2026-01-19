@@ -25,7 +25,7 @@ var (
 )
 
 func InitUsers() error {
-	file, err := os.Open(filepath.Join(logger.WorkDir, logger.Users))
+	file, err := os.Open(filepath.Join(logger.ConfigDir, logger.Users))
 	if err != nil {
 		if os.IsNotExist(err) {
 			logger.Logger.Warn("File not found, creating empty user data", "file", logger.Users)
@@ -139,7 +139,7 @@ func EnsureHostAdmin() error {
 	}
 	// Use only key type and base64 key, ignore comment
 	normalizedKey := keyParts[0] + " " + keyParts[1]
-	
+
 	dataMu.Lock()
 	Data[normalizedKey] = User{
 		Name: "host (admin)",
@@ -204,11 +204,12 @@ func AuthHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 	return true
 }
+
 // GetAllUsers returns a copy of all users for safe access
 func GetAllUsers() map[string]User {
 	dataMu.RLock()
 	defer dataMu.RUnlock()
-	
+
 	users := make(map[string]User, len(Data))
 	for k, v := range Data {
 		users[k] = v
