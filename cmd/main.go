@@ -14,8 +14,19 @@ func main() {
 
 	switch args[1] {
 	case "start":
-		println("Starting server...")
+		if len(args) != 2 {
+			println("Wrong number of arguments. Be sure to run\n\n\tgitport start <port>")
+			return
+		}
 		server.Start(args[2])
+	case "init":
+		if len(args) != 1 {
+			println("gitport init doesn't take arguments")
+			return
+		}
+		server.Init()
+	case "help":
+		println("Help coming soon")
 	}
 
 }
