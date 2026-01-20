@@ -23,7 +23,7 @@ And that's it! You can now run GitPort from any directory on your system.
 ## Usage
 
 <p align="center">
-  <img src="img/demo.gif" width="500">
+  <img src="img/demo.gif" width="700">
 </p>
 
 ``` bash
@@ -52,7 +52,7 @@ Future calls of `gitport start <port>` will allow you to pick up right where you
 The server can be monitored during its uptime with the help of a Terminal User Interface (TUI). Accessing this TUI doesn't require any additional installation, as it can be accessed over SSH. Only users with `admin` permissions can access the TUI.
 
 <p align="center">
-  <img src="img/demo_ssh.gif" width="500">
+  <img src="img/demo_ssh.gif" width="700">
 </p>
 
 ``` bash
