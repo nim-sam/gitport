@@ -396,26 +396,33 @@ func getLocalIP() string {
 }
 
 // initBareRepo creates a bare Git repository for serving
-func initBareRepo(cwd string) (string, string, error) {
+func initBareRepo(cwd string) (string, string, string, error) {
 	repoName := filepath.Base(cwd) + ".git"
+
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		logger.Logger.Error("Couldn't find user config directory", "error", err)
-		return "", "", err
+		return "", "", "", err
 	}
 
 	baseDir := filepath.Join(configDir, "gitport")
 	barePath := filepath.Join(baseDir, repoName)
 
+	gpConf := filepath.Join(barePath, ".gitport")
+
+	if _, err := os.Open(gpConf); err != nil {
+		return "", "", "", fmt.Errorf("Cannot start an uninitialized server. Run `git init` before starting.")
+	}
+
 	// Ensure the base directory exists
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
-		return "", "", fmt.Errorf("failed to create base directory: %w", err)
+		return "", "", "", fmt.Errorf("failed to create base directory: %w", err)
 	}
 
 	// Check if the bare repository already exists
 	if _, err := os.Stat(barePath); err == nil {
 		logger.Logger.Warn("Bare repo already exists, skipping clone", "path", barePath)
-		return baseDir, repoName, nil
+		return baseDir, repoName, gpConf, nil
 	}
 
 	// Create bare repository with loading animation
@@ -423,16 +430,15 @@ func initBareRepo(cwd string) (string, string, error) {
 	logger.Logger.Info("Creating bare repository...")
 	//err = runLoadingAnimation(cmd, "git clone")
 	if err != nil {
-		return "", "", fmt.Errorf("failed to clone bare repository: %w", err)
+		return "", "", "", fmt.Errorf("failed to clone bare repository: %w", err)
 	}
 
-	return baseDir, repoName, nil
+	return baseDir, repoName, configDir, nil
 }
 
 // InitConfig initializes or loads server configuration
 func (s GpServer) initConfig() error {
 
-	// 1. Set the directory path in the logger
 	logger.ConfigDir = s.configDir
 
 	// Setup .gitport directory
@@ -440,18 +446,22 @@ func (s GpServer) initConfig() error {
 		return fmt.Errorf("failed to create .gitport directory: %w", err)
 	}
 
-	// 2. Define the actual path to the FILE, not the directory
-	configFilePath := filepath.Join(s.configDir, logger.Conf) // logger.Conf is "config.json"
+	// Checks if a default config file exists within the .gitport
+	// folder (using config.json in this case)
+	configFilePath := filepath.Join(s.configDir, logger.Conf)
 
-	// 3. Open the FILE
+	// Check if .gitport exists and has content
 	file, err := os.Open(configFilePath)
+
 	if err != nil {
 		if os.IsNotExist(err) {
-			// This will now correctly trigger when config.json is missing
 			return createDefaultConfig()
 		}
 		return err
+	} else {
+		println("GitPort server already initialized. Run\n\n\tgitport start <port>\n\nto start GitPort server for %s", s.RepoName)
 	}
+
 	defer file.Close()
 
 	bytes, err := io.ReadAll(file)
@@ -505,7 +515,7 @@ func getCLIConfig() logger.ConfigData {
 	return config
 }
 
-// initializeServerComponents sets up all server components (logs, auth, file watcher)
+// sets up all server components (logs, auth, file watcher)
 func (s *GpServer) initGitPortServer() error {
 
 	logger.ConfigDir = s.configDir
@@ -534,7 +544,9 @@ func (s *GpServer) initGitPortServer() error {
 		return fmt.Errorf("failed to initialize file watcher: %w", err)
 	}
 
-	s.initConfig()
+	// if err := s.initConfig(); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
@@ -692,7 +704,7 @@ func Init() {
 		return
 	}
 
-	repoDir, repoName, err := initBareRepo(cwd)
+	repoDir, repoName, _, err := initBareRepo(cwd)
 	if err != nil {
 		log.Error("Failed to create bare repo", "error", err)
 		return
@@ -721,13 +733,15 @@ func Init() {
 
 // Start GitPort server on the specified port
 func Start(port string) {
+
 	cwd, _ := os.Getwd()
-	repoDir, repoName, err := initBareRepo(cwd)
 
 	if dirs, _ := os.ReadDir(cwd); !ContainsFile(dirs, ".git") {
 		log.Error("This directory doesn't contain a .git folder (Repo not initialized)")
 		return
 	}
+
+	repoDir, repoName, gpConf, err := initBareRepo(cwd)
 
 	if err != nil {
 		log.Error("Failed to fetch bare repo", "error", err)
@@ -735,8 +749,6 @@ func Start(port string) {
 	}
 
 	// Initialize server struct
-	userConf, _ := os.UserConfigDir()
-	gpConf := filepath.Join(userConf, "gitport", repoName, ".gitport")
 
 	server := GpServer{
 		RepoName:  repoName,
