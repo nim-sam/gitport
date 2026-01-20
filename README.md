@@ -39,13 +39,13 @@ gitport start <port>
   <img src="img/demo.gif" width="500">
 </p>
 
-When running `gitport start <port>` for the first time on a given repo, you will be prompted with a few options to configure Git and SSH-level access permissions and will be automatically be saved.
+When running `gitport start <port>` for the first time, you will be prompted with a few options to configure Git and SSH-level access permissions which will then be automatically be saved.
 
 Then, your current repository will be cloned into a *bare repository* in your system's `$CONFIG_DIR/gitport/` directory. This *bare repo* will now act as the server-side Git repository. Now, any changes comitted to your initial repository will point to that *bare repo*, as long as the server is running.
 
 A `.../.gitport` folder will also be generated inside the *bare repo* to store all server-side data such as user permissions.
 
-Future calls of `gitport start <port>` will allow you to pick up right where you left off without additional fuss.
+Future calls of `gitport start <port>` will allow you to pick up right where you left off without any additional fuss.
 
 ## SSH TUI
 
@@ -56,7 +56,7 @@ The server can be monitored during its uptime with the help of a Terminal User I
 ssh -p <port> <server_ip_addr>
 ```
 
-On the TUI, server configurations such as user permissions (admin, ...) and repository-level edit access (read, write, ...) can be modified. *Note that a server reboot will be necessary for those changes to apply*. Additionally, the TUI displays the commit history and the respective diff's for each commit. Server-level logs can also be accessed directly on the TUI. Both the commit history and server-side logs can be filtered via a fuzzy finder.
+On the TUI, server configurations such as user permissions (admin, ...) and repository-level edit access (read, write, ...) can be modified. *Note that a server reboot won't be necessary for those changes to apply*. Additionally, the TUI displays the commit history and the respective diff's for each commit. Server-level logs can also be accessed directly on the TUI. Both the commit history and server-side logs can be filtered via a fuzzy finder.
 
 ## Honorable Mentions
 
