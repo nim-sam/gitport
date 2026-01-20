@@ -22,6 +22,10 @@ And that's it! You can now run GitPort from any directory on your system.
 
 ## Usage
 
+<p align="center">
+  <img src="img/demo.gif" width="500">
+</p>
+
 ``` bash
 # Initialize a new Git repository
 mkdir my-repo
@@ -35,10 +39,6 @@ gitport init
 gitport start <port>
 ```
 
-<p align="center">
-  <img src="img/demo.gif" width="500">
-</p>
-
 When running `gitport start <port>` for the first time, you will be prompted with a few options to configure Git and SSH-level access permissions which will then be automatically be saved.
 
 Then, your current repository will be cloned into a *bare repository* in your system's `$CONFIG_DIR/gitport/` directory. This *bare repo* will now act as the server-side Git repository. Now, any changes comitted to your initial repository will point to that *bare repo*, as long as the server is running.
@@ -49,7 +49,11 @@ Future calls of `gitport start <port>` will allow you to pick up right where you
 
 ## SSH TUI
 
-The server can be monitored during its uptime with the help of a Terminal User Interface (TUI). Accessing this TUI doesn't require any additional installation, as it can be accessed over SSH. Only users with `admin` permissions can access the TUI. 
+The server can be monitored during its uptime with the help of a Terminal User Interface (TUI). Accessing this TUI doesn't require any additional installation, as it can be accessed over SSH. Only users with `admin` permissions can access the TUI.
+
+<p align="center">
+  <img src="img/demo_ssh.gif" width="500">
+</p>
 
 ``` bash
 # To access the TUI, simply run this command on any host on the local network. The TUI should appear in full screen if you have the correct credentials and access level.
