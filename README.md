@@ -24,12 +24,20 @@ And that's it! You can now run GitPort from any directory on your system.
 
 ``` bash
 # Initialize a new Git repository
-mkdir new-repo
-cd new-repo
+mkdir my-repo
+cd my-repo
 git init
+
+# Initialize GitPort settings for my-repo
+gitport init
+
 # Start a GitPort server
 gitport start <port>
 ```
+
+<p align="center">
+  <img src="img/demo.gif" width="500">
+</p>
 
 When running `gitport start <port>` for the first time on a given repo, you will be prompted with a few options to configure Git and SSH-level access permissions and will be automatically be saved.
 
