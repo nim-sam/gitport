@@ -2,8 +2,8 @@ package main
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nim-sam/gitport/pkg/auth"
-	"github.com/nim-sam/gitport/pkg/tui"
+	"github.com/nim-sam/gitport/internal/auth"
+	"github.com/nim-sam/gitport/internal/tui"
 )
 
 func main() {

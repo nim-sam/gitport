@@ -5,7 +5,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/nim-sam/gitport/pkg/auth"
+	"github.com/nim-sam/gitport/internal/auth"
 )
 
 // Dashboard states
@@ -13,7 +13,7 @@ import (
 type dashboardState int
 
 const (
-	defaultState dashboardState = iota
+	DefaultState dashboardState = iota
 	UserCreateState
 	UserDeleteState
 )
@@ -100,6 +100,10 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q":
 			return m, tea.Quit
+		case "n":
+			m.state = UserCreateState
+		case "esc":
+			m.state = DefaultState
 		}
 
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nim-sam/gitport/pkg/auth"
+	"github.com/nim-sam/gitport/internal/auth"
 )
 
 // User List
