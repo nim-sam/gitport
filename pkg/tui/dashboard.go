@@ -14,25 +14,31 @@ type dashboardState int
 
 const (
 	defaultState dashboardState = iota
-	createState
-	deleteState
+	UserCreateState
+	UserDeleteState
 )
 
 // Dashboard Model
 
 type dashboardModel struct {
-	userList     UserListModel
-	selectedUser int
-	selectedKey  string
-	width        int
-	height       int
 
-	state dashboardState
+	// UserList-related specs
+	userList UserListModel
+
+	// Dashboard-related specs
+	screenWidth  int
+	screenHeight int
+	innerWidth   int
+	innerHeight  int
+	state        dashboardState
+
+	// Panel widths
+	leftWidth  int
+	rightWidth int
 
 	// Form inputs for new user creation
-	nameInput   textinput.Model
-	sshKeyInput textinput.Model
-	// permLevel       string
+	nameInput       textinput.Model
+	sshKeyInput     textinput.Model
 	userListFocused bool
 }
 
@@ -71,19 +77,29 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.WindowSizeMsg:
-		m.width = msg.Width - 2
-		m.height = msg.Height - 2
 
-		m.userList.height = m.height
-		m.userList.width = int(float32(m.width) * 0.40)
+		// Terminal window dimensions
+		m.screenWidth = msg.Width - 2
+		m.screenHeight = msg.Height - 2
 
+		// Application interface dimensions
+		m.innerWidth = int(float32(m.screenWidth) * 0.75)
+		m.innerHeight = int(float32(m.screenHeight) * 0.75)
+
+		// Left-Right panel dimensions
+		m.leftWidth = int(float32(m.innerWidth)*0.50) - 1
+		m.rightWidth = m.innerWidth - m.leftWidth - 1
+
+		// UserList inherits diemensions from left panel
+		m.userList.height = m.innerHeight
+		m.userList.width = m.leftWidth
 		m.userList.listModel.SetSize(m.userList.width, m.userList.height)
 
 	case tea.KeyMsg:
 
 		switch msg.String() {
 		case "q":
-			tea.Quit()
+			return m, tea.Quit
 		}
 
 	}
@@ -96,17 +112,36 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m dashboardModel) View() string {
 
-	dashBoardStyle := lipgloss.NewStyle().
+	// Left panel styling
+	leftPanelStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(palette.border).
-		Height(m.height).
-		Width(m.width)
+		Height(m.innerHeight).
+		Width(m.leftWidth).
+		AlignHorizontal(lipgloss.Center).
+		Padding(0, 1)
 
-	// listWidth := int(float64(m.width) * 0.9)
+	_ = leftPanelStyle
 
+	// Right Panel styling
+	rightPanelStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(palette.border).
+		Height(m.innerHeight).
+		Width(m.rightWidth)
+
+	// Terminal window-sized application container, that will be containing
+	// the left and right panels, centered vertically and horizontally
+	dashBoardStyle := lipgloss.NewStyle().
+		Width(m.screenWidth).
+		Height(m.screenHeight).
+		Align(lipgloss.Center, lipgloss.Center)
+
+	// Aggregating the left and right panels inside dashBoardStyle
 	output := dashBoardStyle.Render(lipgloss.JoinHorizontal(
 		lipgloss.Left,
-		m.userList.View(),
+		leftPanelStyle.Render(m.userList.View()),
+		rightPanelStyle.String(),
 	))
 
 	return output
