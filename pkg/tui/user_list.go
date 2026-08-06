@@ -23,13 +23,6 @@ func (u UserListModel) Init() tea.Cmd {
 }
 
 func (u UserListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-
-	// switch msg := msg.(type) {
-	// case tea.WindowSizeMsg:
-	// 	u.width = msg.Width / 2
-	// 	u.height = msg.Height - 2
-	// }
-
 	return u, nil
 }
 
