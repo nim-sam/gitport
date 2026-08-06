@@ -44,24 +44,13 @@ func (u UserListModel) View() string {
 	u.listModel.Styles.TitleBar = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), false, false, true, false).
 		BorderForeground(palette.border).
-		Width(u.width - 4).
+		Width(u.width - 2).
 		AlignHorizontal(lipgloss.Center)
-	// u.listModel.SetShowHelp(false)
-
-	// u.listModel.Styles. = lipgloss.NewStyle().
-	// 	Foreground(palette.listSelect)
-
-	// User List container style
-	listStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder(), false, true, false, false).
-		BorderForeground(palette.border).
-		Padding(0, 1).
-		Width(u.width).
-		Height(u.height)
+	u.listModel.SetShowHelp(false)
 
 	userListModelView := u.listModel.View()
 
-	return listStyle.Render(userListModelView)
+	return userListModelView
 
 }
 
