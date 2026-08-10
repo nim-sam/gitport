@@ -72,12 +72,14 @@ type HelpModel struct {
 	help    help.Model
 	lastKey string
 	width   int
+	height  int
 }
 
 func newHelp() HelpModel {
 	return HelpModel{
-		keys: keys,
-		help: help.New(),
+		keys:   keys,
+		help:   help.New(),
+		height: 2,
 	}
 }
 
@@ -114,7 +116,7 @@ func (m HelpModel) Update(msg tea.Msg) (HelpModel, tea.Cmd) {
 
 func (m HelpModel) View() string {
 
-	helpContainer := lipgloss.NewStyle().Width(m.width).AlignHorizontal(lipgloss.Center)
+	helpContainer := lipgloss.NewStyle().Width(m.width).Height(m.height).AlignHorizontal(lipgloss.Center)
 
 	return helpContainer.Render(m.help.View(m.keys))
 }
