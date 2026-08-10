@@ -88,8 +88,8 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.screenHeight = msg.Height - 2
 
 		// Application interface dimensions
-		m.innerWidth = int(float32(m.screenWidth) * 0.85)
-		m.innerHeight = int(float32(m.screenHeight) * 0.85)
+		m.innerWidth = int(float32(m.screenWidth) * 0.90)
+		m.innerHeight = int(float32(m.screenHeight) * 0.90)
 
 		// Left-Right panel dimensions
 		m.leftWidth = int(float32(m.innerWidth)*0.50) - 1
@@ -139,7 +139,8 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	}
 
-	// var cmd tea.Cmd
+	// Passing messages to dashboard sub-models
+
 	if m.focus == leftPanel && m.state == DefaultState {
 		m.userList.listModel, _ = m.userList.listModel.Update(msg)
 	}
@@ -168,41 +169,44 @@ func (m dashboardModel) View() string {
 		rightPanelModel = m.userList
 	}
 
-	// Left panel styling
-	leftPanelStyle := lipgloss.NewStyle().
+	// Panel styling
+
+	var leftPanelStyle lipgloss.Style
+	var rightPanelStyle lipgloss.Style
+
+	panelStyleBlurred := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(palette.border).
 		Height(m.innerHeight).
-		Width(m.leftWidth).
-		AlignHorizontal(lipgloss.Center).
-		Padding(0, 1)
+		AlignHorizontal(lipgloss.Center)
+
+	panelStyleFocused := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(palette.selectedBorder).
+		Height(m.innerHeight).
+		AlignHorizontal(lipgloss.Center)
 
 	if m.focus == leftPanel {
-		leftPanelStyle = leftPanelStyle.BorderForeground(palette.selectedBorder)
+		leftPanelStyle = panelStyleFocused.Width(m.leftWidth)
+		rightPanelStyle = panelStyleBlurred.Width(m.rightWidth)
 	}
 
-	_ = leftPanelStyle
-
-	// Right Panel styling
-	rightPanelStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(palette.border).
-		Height(m.innerHeight).
-		Width(m.rightWidth)
-
 	if m.focus == rightPanel {
-		rightPanelStyle = rightPanelStyle.BorderForeground(palette.selectedBorder)
+		leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
+		rightPanelStyle = panelStyleFocused.Width(m.rightWidth)
 	}
 
 	// Pop-up window styling
 	popUpStyle := lipgloss.NewStyle().
 		Width(m.rightWidth).
-		Height(int(float32(m.innerHeight) * 2 / 3)).
+		Height(int(float32(m.innerHeight) * 2.0 / 3.0)).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(palette.border)
 
 	if m.focus == popUpPanel {
 		popUpStyle = popUpStyle.BorderForeground(palette.selectedBorder)
+		leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
+		rightPanelStyle = panelStyleBlurred.Width(m.rightWidth)
 	}
 
 	// Terminal window-sized application container, that will be containing
