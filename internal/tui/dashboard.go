@@ -49,6 +49,9 @@ type dashboardModel struct {
 
 	// Form for new user creation
 	userCreationForm UserFormModel
+
+	// Help
+	help HelpModel
 }
 
 // Inititializes and instantiates dashboard mdoel
@@ -58,10 +61,13 @@ func NewDashboard(users []*auth.User) dashboardModel {
 
 	ucf := newUserFormModel()
 
+	h := newHelp()
+
 	// Return new dashboard model
 	return dashboardModel{
 		userList:         u,
 		userCreationForm: ucf,
+		help:             h,
 	}
 }
 
@@ -94,7 +100,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.userList.width = m.leftWidth
 		m.userList.listModel.SetSize(m.userList.width, m.userList.height)
 
-		// UserCreatoinForm inheritds dimensions from right panel
+		// UserCreationForm inheritds dimensions from right panel
 		m.userCreationForm.width = m.rightWidth
 		m.userCreationForm.heigt = int(float32(m.innerHeight) * 2 / 3)
 
@@ -102,6 +108,9 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			prompt := m.userCreationForm.inputs[i].Prompt
 			m.userCreationForm.inputs[i].Width = m.userCreationForm.width - 6 - len(prompt) - 1
 		}
+
+		// Help inherits dimenaions from innerWidth
+		m.help.width = m.innerWidth
 
 	case tea.KeyMsg:
 
@@ -140,6 +149,8 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.userCreationForm.UpdateInputs(msg)
 		m.userCreationForm.selector.UpdateSelection(msg)
 	}
+
+	m.help, _ = m.help.Update(msg)
 
 	return m, nil
 }
@@ -202,11 +213,17 @@ func (m dashboardModel) View() string {
 		Align(lipgloss.Center, lipgloss.Center)
 
 	// Aggregating the left and right panels inside dashBoardStyle
-	output := dashBoardStyle.Render(lipgloss.JoinHorizontal(
-		lipgloss.Left,
-		leftPanelStyle.Render(leftPanelModel.View()),
-		rightPanelStyle.Render(rightPanelModel.View()),
-	))
+	output := dashBoardStyle.Render(
+
+		lipgloss.JoinVertical(lipgloss.Top,
+
+			lipgloss.JoinHorizontal(
+				lipgloss.Left,
+				leftPanelStyle.Render(leftPanelModel.View()),
+				rightPanelStyle.Render(rightPanelModel.View()),
+			),
+			m.help.View(),
+		))
 
 	// Injecting Pop-up window
 	toInject := strings.Split(popUpStyle.Render(m.userCreationForm.View()), "\n")
