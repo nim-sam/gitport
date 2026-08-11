@@ -1,11 +1,12 @@
 package ui
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nim-sam/gitport/pkg/selector"
-	"strings"
 )
 
 type UserFormModel struct {
@@ -22,7 +23,10 @@ func (m UserFormModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m UserFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m UserFormModel) Update(msg tea.Msg) (UserFormModel, tea.Cmd) {
+	for i, _ := range m.inputs {
+		m.inputs[i].Width = m.width - 18
+	}
 	return m, nil
 }
 
@@ -84,8 +88,9 @@ func (m UserFormModel) View() string {
 
 	// Composing the form
 	titleBar := lipgloss.NewStyle().Width(m.width).AlignHorizontal(lipgloss.Center)
-	composition := lipgloss.NewStyle().Width(m.width-2).Height(m.heigt-2).Padding(0, 1).AlignVertical(lipgloss.Center).AlignHorizontal(lipgloss.Center)
-	inputsContainer := lipgloss.NewStyle().Width(m.width-4).Height(4).Padding(0, 1)
+	composition := lipgloss.NewStyle().Width(m.width-2).Height(m.heigt-5).Padding(0, 1).AlignVertical(lipgloss.Center).AlignHorizontal(lipgloss.Center)
+	inputsContainer := lipgloss.NewStyle().Width(m.width-12).Height(3).Padding(0, 1)
+	buttonContainer := lipgloss.NewStyle().Width(m.width).Height(3).Align(lipgloss.Center, lipgloss.Center)
 
 	return lipgloss.JoinVertical(lipgloss.Top,
 		titleBar.Render(titleStyle.Render(m.title)),
@@ -96,15 +101,16 @@ func (m UserFormModel) View() string {
 					m.selector.View(),
 				),
 			),
-			button.Render(m.buttonMsg),
-		))
+		),
+		buttonContainer.Render(button.Render(m.buttonMsg)),
+	)
 }
 
 func newUserCreationFormModel() UserFormModel {
 
 	s := selector.New("ReadOnly", "ReadWrite", "Admin")
 
-	s.Prompt = "Access Level"
+	s.Prompt = "◇"
 
 	u := UserFormModel{
 		inputs:    make([]textinput.Model, 2),
@@ -119,15 +125,15 @@ func newUserCreationFormModel() UserFormModel {
 
 		switch i {
 		case 0:
-			t.Prompt = "Username     "
+			t.Prompt = "◇ "
 			t.CharLimit = 32
-			t.Placeholder = "..."
+			t.Placeholder = "Username"
 			// t.Width = u.width - 4
 			t.Focus()
 		case 1:
-			t.Prompt = "SSH Key      "
+			t.Prompt = "◇ "
 			t.CharLimit = 512
-			t.Placeholder = "..."
+			t.Placeholder = "SSH Key"
 		}
 
 		u.inputs[i] = t
@@ -142,7 +148,7 @@ func newUserModificationFormModel() UserFormModel {
 
 	s := selector.New("ReadOnly", "ReadWrite", "Admin")
 
-	s.Prompt = "Access Level"
+	s.Prompt = "◇"
 
 	u := UserFormModel{
 		inputs:    make([]textinput.Model, 2),
@@ -157,15 +163,15 @@ func newUserModificationFormModel() UserFormModel {
 
 		switch i {
 		case 0:
-			t.Prompt = "Username     "
+			t.Prompt = "◇ "
 			t.CharLimit = 32
-			t.Placeholder = "..."
+			t.Placeholder = "Username"
 			// t.Width = u.width - 4
 			t.Focus()
 		case 1:
-			t.Prompt = "SSH Key      "
+			t.Prompt = "◇ "
 			t.CharLimit = 512
-			t.Placeholder = "..."
+			t.Placeholder = "SHH Key"
 		}
 
 		u.inputs[i] = t

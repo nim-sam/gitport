@@ -4,9 +4,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"strings"
+
 	overlay "github.com/floatpane/bubble-overlay"
 	"github.com/nim-sam/gitport/internal/auth"
-	"strings"
 )
 
 // Dashboard states
@@ -111,19 +112,9 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.userCreationForm.width = m.rightWidth
 		m.userCreationForm.heigt = int(float32(m.innerHeight) * 2 / 3)
 
-		for i := range m.userCreationForm.inputs {
-			prompt := m.userCreationForm.inputs[i].Prompt
-			m.userCreationForm.inputs[i].Width = m.userCreationForm.width - 6 - len(prompt) - 1
-		}
-
 		// UserModificatoinForm inherits dimensions from right panel
 		m.userModificationForm.width = m.rightWidth
 		m.userModificationForm.heigt = int(float32(m.innerHeight) * 2 / 3)
-
-		for i := range m.userModificationForm.inputs {
-			prompt := m.userModificationForm.inputs[i].Prompt
-			m.userModificationForm.inputs[i].Width = m.userModificationForm.width - 6 - len(prompt) - 1
-		}
 
 		// Help inherits dimenaions from innerWidth
 		m.help.width = m.innerWidth
@@ -193,6 +184,8 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	m.help, _ = m.help.Update(msg)
+	m.userCreationForm, _ = m.userCreationForm.Update(msg)
+	m.userModificationForm, _ = m.userModificationForm.Update(msg)
 
 	return m, nil
 }
