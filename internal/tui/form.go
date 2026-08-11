@@ -1,8 +1,10 @@
 package tui
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nim-sam/gitport/pkg/selector"
 	"strings"
