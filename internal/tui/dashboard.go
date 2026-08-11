@@ -16,6 +16,7 @@ type dashboardState int
 const (
 	DefaultState dashboardState = iota
 	UserCreateState
+	UserEditState
 	UserDeleteState
 )
 
@@ -50,6 +51,9 @@ type dashboardModel struct {
 	// Form for new user creation
 	userCreationForm UserFormModel
 
+	// Form for user information modification
+	userModificationForm UserFormModel
+
 	// Help
 	help HelpModel
 }
@@ -59,15 +63,18 @@ func NewDashboard(users []*auth.User) dashboardModel {
 
 	u := newUserList(users)
 
-	ucf := newUserFormModel()
+	ucf := newUserCreationFormModel()
+
+	umf := newUserModificationFormModel()
 
 	h := newHelp()
 
 	// Return new dashboard model
 	return dashboardModel{
-		userList:         u,
-		userCreationForm: ucf,
-		help:             h,
+		userList:             u,
+		userCreationForm:     ucf,
+		userModificationForm: umf,
+		help:                 h,
 	}
 }
 
@@ -89,7 +96,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Application interface dimensions
 		m.innerWidth = int(float32(m.screenWidth) * 0.90)
-		m.innerHeight = int(float32(m.screenHeight) * 0.90)
+		m.innerHeight = int(float32(m.screenHeight) * 0.60)
 
 		// Left-Right panel dimensions
 		m.leftWidth = int(float32(m.innerWidth)*0.50) - 1
@@ -100,13 +107,22 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.userList.width = m.leftWidth
 		m.userList.listModel.SetSize(m.userList.width, m.userList.height)
 
-		// UserCreationForm inheritds dimensions from right panel
+		// UserCreationForm inherits dimensions from right panel
 		m.userCreationForm.width = m.rightWidth
 		m.userCreationForm.heigt = int(float32(m.innerHeight) * 2 / 3)
 
 		for i := range m.userCreationForm.inputs {
 			prompt := m.userCreationForm.inputs[i].Prompt
 			m.userCreationForm.inputs[i].Width = m.userCreationForm.width - 6 - len(prompt) - 1
+		}
+
+		// UserModificatoinForm inherits dimensions from right panel
+		m.userModificationForm.width = m.rightWidth
+		m.userModificationForm.heigt = int(float32(m.innerHeight) * 2 / 3)
+
+		for i := range m.userModificationForm.inputs {
+			prompt := m.userModificationForm.inputs[i].Prompt
+			m.userModificationForm.inputs[i].Width = m.userModificationForm.width - 6 - len(prompt) - 1
 		}
 
 		// Help inherits dimenaions from innerWidth
@@ -117,18 +133,38 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+q":
 			return m, tea.Quit
+		// Handling user creation
 		case "ctrl+n":
-			if m.state == UserCreateState {
+			switch m.state {
+			case UserCreateState:
 				m.state = DefaultState
 				m.focus = leftPanel
 				m.userCreationForm.ClearInputs()
-			} else {
+			case DefaultState:
 				m.state = UserCreateState
+			}
+		// Handling user information modification
+		case "ctrl+e":
+			switch m.state {
+			case UserEditState:
+				m.state = DefaultState
+				m.focus = leftPanel
+				m.userModificationForm.ClearInputs()
+			case DefaultState:
+				m.state = UserEditState
+
+				// Fetch currently selected user and populate data in pop-up
+				currentUserIndex := m.userList.listModel.Index()
+				currentUser := m.userList.userData[currentUserIndex]
+				m.userModificationForm.inputs[0].SetValue(currentUser.Name())
+				m.userModificationForm.inputs[1].SetValue(currentUser.SshKey())
+				m.userModificationForm.selector.SetValue(int(currentUser.AccessLevel()))
 			}
 		case "esc":
 			m.state = DefaultState
 			m.userCreationForm.ClearInputs()
 			m.focus = leftPanel
+		// Swtiching focus between left and right panels
 		case "tab":
 			if m.focus == leftPanel && m.state == DefaultState {
 				m.focus = rightPanel
@@ -136,7 +172,6 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.focus = leftPanel
 			}
 		}
-
 	}
 
 	// Passing messages to dashboard sub-models
@@ -149,6 +184,12 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.focus = popUpPanel
 		m.userCreationForm.UpdateInputs(msg)
 		m.userCreationForm.selector.UpdateSelection(msg)
+	}
+
+	if m.state == UserEditState {
+		m.focus = popUpPanel
+		m.userModificationForm.UpdateInputs(msg)
+		m.userModificationForm.selector.UpdateSelection(msg)
 	}
 
 	m.help, _ = m.help.Update(msg)
@@ -166,6 +207,8 @@ func (m dashboardModel) View() string {
 	case DefaultState:
 		rightPanelModel = m.userList
 	case UserCreateState:
+		rightPanelModel = m.userList
+	case UserEditState:
 		rightPanelModel = m.userList
 	}
 
@@ -230,12 +273,19 @@ func (m dashboardModel) View() string {
 		))
 
 	// Injecting Pop-up window
-	toInject := strings.Split(popUpStyle.Render(m.userCreationForm.View()), "\n")
+	form := m.userCreationForm
+	switch m.state {
+	case UserCreateState:
+		form = m.userCreationForm
+	case UserEditState:
+		form = m.userModificationForm
+	}
+	toInject := strings.Split(popUpStyle.Render(form.View()), "\n")
 
-	x_coord := int((1.0 / 2.0) * float32(m.screenWidth-m.userCreationForm.width-2))
-	y_coord := int((1.0 / 2.0) * float32(m.screenHeight-m.userCreationForm.heigt-2))
+	x_coord := int((1.0 / 2.0) * float32(m.screenWidth-form.width-2))
+	y_coord := int((1.0 / 2.0) * float32(m.screenHeight-form.heigt-2))
 
-	if m.state == UserCreateState {
+	if m.state == UserCreateState || m.state == UserEditState {
 		output = overlay.Block(output, toInject, y_coord, x_coord)
 	}
 
