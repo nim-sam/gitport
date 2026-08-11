@@ -16,6 +16,7 @@ type UserListModel struct {
 	height    int
 	listModel list.Model
 	users     []list.Item
+	userData  []*auth.User
 }
 
 func (u UserListModel) Init() tea.Cmd {
@@ -100,6 +101,7 @@ func newUserList(users []*auth.User) UserListModel {
 
 	return UserListModel{
 		users:     userList,
+		userData:  users,
 		listModel: list.New(userList, delegate, 60, 14),
 	}
 }
