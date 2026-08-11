@@ -3,7 +3,7 @@ package main
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nim-sam/gitport/internal/auth"
-	"github.com/nim-sam/gitport/internal/tui"
+	"github.com/nim-sam/gitport/ui"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 			WithAccessLevel(auth.ReadOnly),
 	}
 
-	d := tui.NewDashboard(userListTest[:])
+	d := ui.NewDashboard(userListTest[:])
 
 	p := tea.NewProgram(d, tea.WithAltScreen())
 	p.Run()
