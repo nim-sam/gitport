@@ -100,7 +100,7 @@ func (m UserFormModel) View() string {
 		))
 }
 
-func newUserFormModel() UserFormModel {
+func newUserCreationFormModel() UserFormModel {
 
 	s := selector.New("ReadOnly", "ReadWrite", "Admin")
 
@@ -109,7 +109,45 @@ func newUserFormModel() UserFormModel {
 	u := UserFormModel{
 		inputs:    make([]textinput.Model, 2),
 		buttonMsg: "[ SUBMIT ]",
-		title:     "Create a new user",
+		title:     "Create New User",
+		selector:  s,
+	}
+
+	for i := range u.inputs {
+
+		t := textinput.New()
+
+		switch i {
+		case 0:
+			t.Prompt = "Username     "
+			t.CharLimit = 32
+			t.Placeholder = "..."
+			// t.Width = u.width - 4
+			t.Focus()
+		case 1:
+			t.Prompt = "SSH Key      "
+			t.CharLimit = 512
+			t.Placeholder = "..."
+		}
+
+		u.inputs[i] = t
+
+	}
+
+	return u
+
+}
+
+func newUserModificationFormModel() UserFormModel {
+
+	s := selector.New("ReadOnly", "ReadWrite", "Admin")
+
+	s.Prompt = "Access Level"
+
+	u := UserFormModel{
+		inputs:    make([]textinput.Model, 2),
+		buttonMsg: "[ CONFIRM ]",
+		title:     "Edit User Information",
 		selector:  s,
 	}
 
