@@ -1,6 +1,7 @@
 package selector
 
 import (
+	"errors"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -81,4 +82,13 @@ func New(fields ...string) Model {
 		length:             len(fields),
 		lenghtLongestValue: maxLength,
 	}
+}
+
+// Sets current selected item to
+func (m *Model) SetValue(index int) error {
+	if index < 0 || index > m.length-1 {
+		return errors.New("Out of bounds")
+	}
+	m.selectedItem = index
+	return nil
 }
