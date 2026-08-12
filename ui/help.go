@@ -8,8 +8,7 @@ import (
 )
 
 type DashboardKeys struct {
-	Up         key.Binding
-	Down       key.Binding
+	VNav       key.Binding
 	Tab        key.Binding
 	NewUser    key.Binding
 	EditUser   key.Binding
@@ -19,13 +18,12 @@ type DashboardKeys struct {
 }
 
 func (d DashboardKeys) ShortHelp() []key.Binding {
-	return []key.Binding{d.Up, d.Down, d.Tab, d.Quit, d.Help}
+	return []key.Binding{d.VNav, d.Tab, d.Quit, d.Help}
 }
 
 func (d DashboardKeys) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{d.Up, d.Down},
-		{d.Tab, d.Quit},
+		{d.VNav, d.Tab},
 		{d.NewUser, d.EditUser},
 		{d.DeleteUser},
 		{d.Quit, d.Help},
@@ -33,17 +31,13 @@ func (d DashboardKeys) FullHelp() [][]key.Binding {
 }
 
 var keys = DashboardKeys{
-	Up: key.NewBinding(
-		key.WithKeys("up"),
-		key.WithHelp("↑", "move up"),
-	),
-	Down: key.NewBinding(
-		key.WithKeys("down"),
-		key.WithHelp("↓", "move down"),
+	VNav: key.NewBinding(
+		key.WithKeys("up", "down"),
+		key.WithHelp("↑/↓", "up/down"),
 	),
 	Tab: key.NewBinding(
 		key.WithKeys("tab"),
-		key.WithHelp("tab", "switch panel"),
+		key.WithHelp("tab", "switch tabs"),
 	),
 	NewUser: key.NewBinding(
 		key.WithKeys("ctrl+n"),
@@ -106,6 +100,8 @@ func (m HelpModel) Update(msg tea.Msg) (HelpModel, tea.Cmd) {
 			m.lastKey = "ctrl+d"
 		case "ctrl+q":
 			m.lastKey = "ctrl+q"
+		case "enter":
+			m.lastKey = "enter"
 		case "?":
 			m.help.ShowAll = !m.help.ShowAll
 		}
