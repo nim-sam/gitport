@@ -188,7 +188,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.userCreationForm.ClearInputs()
 			m.focus = leftPanel
 		// Swtiching focus between left and right panels
-		case "tab":
+		case "enter":
 			if m.focus == leftPanel && m.state == DefaultState {
 				m.focus = rightPanel
 			} else if m.focus == rightPanel && m.state == DefaultState {
