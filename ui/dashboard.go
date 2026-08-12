@@ -17,18 +17,27 @@ type dashboardState int
 
 const (
 	DefaultState dashboardState = iota
-	UserCreateState
-	UserEditState
-	UserDeleteState
+	CreateState
+	EditState
+	DeleteState
 )
 
 // Dashboard Focus states
-type dashhboardFocus int
+type dashboardFocus int
 
 const (
-	leftPanel dashhboardFocus = iota
+	leftPanel dashboardFocus = iota
 	rightPanel
 	popUpPanel
+)
+
+// Tab states
+type tabFocus int
+
+const (
+	userManagement tabFocus = iota
+	commitHistory
+	serverLogs
 )
 
 // Dashboard Model
@@ -44,7 +53,8 @@ type dashboardModel struct {
 	innerWidth   int
 	innerHeight  int
 	state        dashboardState
-	focus        dashhboardFocus
+	focus        dashboardFocus
+	tab          tabFocus
 
 	// Panel widths
 	leftWidth  int
@@ -136,33 +146,42 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+q":
 			return m, tea.Quit
-		// Handling user creation
+		// CREATE RESOURCE
 		case "ctrl+n":
-			switch m.state {
-			case UserCreateState:
-				m.state = DefaultState
-				m.focus = leftPanel
-				m.userCreationForm.ClearInputs()
-			case DefaultState:
-				m.state = UserCreateState
+			switch m.tab {
+			// Handling User Creation
+			case userManagement:
+				switch m.state {
+				case CreateState:
+					m.state = DefaultState
+					m.focus = leftPanel
+					m.userCreationForm.ClearInputs()
+				case DefaultState:
+					m.state = CreateState
+				}
 			}
-		// Handling user information modification
+		// EDIT RESOURCE
 		case "ctrl+e":
-			switch m.state {
-			case UserEditState:
-				m.state = DefaultState
-				m.focus = leftPanel
-				m.userModificationForm.ClearInputs()
-			case DefaultState:
-				m.state = UserEditState
+			switch m.tab {
+			// Handling User Information Modifications
+			case userManagement:
+				switch m.state {
+				case EditState:
+					m.state = DefaultState
+					m.focus = leftPanel
+					m.userModificationForm.ClearInputs()
+				case DefaultState:
+					m.state = EditState
 
-				// Fetch currently selected user and populate data in pop-up
-				currentUserIndex := m.userList.listModel.Index()
-				currentUser := m.userList.userData[currentUserIndex]
-				m.userModificationForm.inputs[0].SetValue(currentUser.Name())
-				m.userModificationForm.inputs[1].SetValue(currentUser.SshKey())
-				m.userModificationForm.selector.SetValue(int(currentUser.AccessLevel()))
+					// Fetch currently selected user and populate data in pop-up
+					currentUserIndex := m.userList.listModel.Index()
+					currentUser := m.userList.userData[currentUserIndex]
+					m.userModificationForm.inputs[0].SetValue(currentUser.Name())
+					m.userModificationForm.inputs[1].SetValue(currentUser.SshKey())
+					m.userModificationForm.selector.SetValue(int(currentUser.AccessLevel()))
+				}
 			}
+
 		case "esc":
 			m.state = DefaultState
 			m.userCreationForm.ClearInputs()
@@ -177,48 +196,77 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	// Handling tab selection
+	m.navigator, _ = m.navigator.Update(msg)
+	m.tab = tabFocus(m.navigator.Index())
+
 	// Passing messages to dashboard sub-models
 
-	if m.focus == leftPanel && m.state == DefaultState {
-		m.userList.listModel, _ = m.userList.listModel.Update(msg)
-	}
-
-	if m.state == UserCreateState {
-		m.focus = popUpPanel
-		m.userCreationForm.UpdateInputs(msg)
-		m.userCreationForm.selector.UpdateSelection(msg)
-	}
-
-	if m.state == UserEditState {
-		m.focus = popUpPanel
-		m.userModificationForm.UpdateInputs(msg)
-		m.userModificationForm.selector.UpdateSelection(msg)
+	switch m.tab {
+	case userManagement:
+		switch m.state {
+		// Broswing users
+		case DefaultState:
+			if m.focus == leftPanel {
+				m.userList.listModel, _ = m.userList.listModel.Update(msg)
+			}
+		// Creating user
+		case CreateState:
+			m.focus = popUpPanel
+			m.userCreationForm.UpdateInputs(msg)
+			m.userCreationForm.selector.UpdateSelection(msg)
+		// Editing user
+		case EditState:
+			m.focus = popUpPanel
+			m.userModificationForm.UpdateInputs(msg)
+			m.userModificationForm.selector.UpdateSelection(msg)
+		}
 	}
 
 	m.help, _ = m.help.Update(msg)
 	m.userCreationForm, _ = m.userCreationForm.Update(msg)
 	m.userModificationForm, _ = m.userModificationForm.Update(msg)
-	m.navigator, _ = m.navigator.Update(msg)
 
 	return m, nil
 }
 
 func (m dashboardModel) View() string {
 
-	leftPanelModel := m.userList
+	var leftPanelContent string
+	var rightPanelContent string
 
-	var rightPanelModel tea.Model
-
-	switch m.state {
-	case DefaultState:
-		rightPanelModel = m.userList
-	case UserCreateState:
-		rightPanelModel = m.userList
-	case UserEditState:
-		rightPanelModel = m.userList
+	switch m.tab {
+	// User Management Tab
+	case userManagement:
+		switch m.state {
+		case DefaultState:
+			leftPanelContent = m.userList.View()
+			rightPanelContent = ""
+		case CreateState:
+			leftPanelContent = m.userList.View()
+			rightPanelContent = ""
+		case EditState:
+			leftPanelContent = m.userList.View()
+			rightPanelContent = ""
+		}
+	// Commit History Tab
+	case commitHistory:
+		switch m.state {
+		default:
+			leftPanelContent = "Commit History Left Panel"
+			rightPanelContent = "Commit History Right panel"
+		}
+	// Server Logs Tab
+	case serverLogs:
+		switch m.state {
+		default:
+			leftPanelContent = "Server Logs Left Panel"
+			rightPanelContent = "Server Logs Right Panel"
+		}
 	}
 
 	// Navigator styling
+
 	m.navigator.Styles.Title = m.navigator.Styles.Title.Foreground(palette.accent)
 	m.navigator.Styles.TabBlurred = m.navigator.Styles.TabBlurred.Foreground(palette.fgMuted).Faint(true)
 	m.navigator.Styles.TabFocused = m.navigator.Styles.TabFocused.Foreground(palette.fg).BorderForeground(palette.fg)
@@ -279,8 +327,8 @@ func (m dashboardModel) View() string {
 			navigatorContainer.Render(m.navigator.View()),
 			lipgloss.JoinHorizontal(
 				lipgloss.Left,
-				leftPanelStyle.Render(leftPanelModel.View()),
-				rightPanelStyle.Render(rightPanelModel.View()),
+				leftPanelStyle.Render(leftPanelContent),
+				rightPanelStyle.Render(rightPanelContent),
 			),
 			m.help.View(),
 		))
@@ -288,9 +336,9 @@ func (m dashboardModel) View() string {
 	// Injecting Pop-up window
 	form := m.userCreationForm
 	switch m.state {
-	case UserCreateState:
+	case CreateState:
 		form = m.userCreationForm
-	case UserEditState:
+	case EditState:
 		form = m.userModificationForm
 	}
 	toInject := strings.Split(popUpStyle.Render(form.View()), "\n")
@@ -298,7 +346,7 @@ func (m dashboardModel) View() string {
 	x_coord := int((1.0 / 2.0) * float32(m.screenWidth-form.width-2))
 	y_coord := int((1.0 / 2.0) * float32(m.screenHeight-form.heigt-2))
 
-	if m.state == UserCreateState || m.state == UserEditState {
+	if m.state == CreateState || m.state == EditState {
 		output = overlay.Block(output, toInject, y_coord, x_coord)
 	}
 
