@@ -8,6 +8,7 @@ import (
 
 	overlay "github.com/floatpane/bubble-overlay"
 	"github.com/nim-sam/gitport/internal/auth"
+	"github.com/nim-sam/gitport/pkg/navigator"
 )
 
 // Dashboard states
@@ -49,6 +50,9 @@ type dashboardModel struct {
 	leftWidth  int
 	rightWidth int
 
+	// Navigator
+	navigator navigator.Model
+
 	// Form for new user creation
 	userCreationForm UserFormModel
 
@@ -62,6 +66,10 @@ type dashboardModel struct {
 // Inititializes and instantiates dashboard mdoel
 func NewDashboard(users []*auth.User) dashboardModel {
 
+	nav := navigator.New()
+	nav.Title = "GitPort"
+	nav.SetTabs("User Management", "Commit History", "Server Logs")
+
 	u := newUserList(users)
 
 	ucf := newUserCreationFormModel()
@@ -72,6 +80,7 @@ func NewDashboard(users []*auth.User) dashboardModel {
 
 	// Return new dashboard model
 	return dashboardModel{
+		navigator:            nav,
 		userList:             u,
 		userCreationForm:     ucf,
 		userModificationForm: umf,
@@ -102,6 +111,9 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Left-Right panel dimensions
 		m.leftWidth = int(float32(m.innerWidth)*0.50) - 1
 		m.rightWidth = m.innerWidth - m.leftWidth - 1
+
+		// Navigator inherits width from inner width
+		m.navigator.Width = m.innerWidth
 
 		// UserList inherits diemensions from left panel
 		m.userList.height = m.innerHeight
@@ -186,6 +198,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.help, _ = m.help.Update(msg)
 	m.userCreationForm, _ = m.userCreationForm.Update(msg)
 	m.userModificationForm, _ = m.userModificationForm.Update(msg)
+	m.navigator, _ = m.navigator.Update(msg)
 
 	return m, nil
 }
@@ -204,6 +217,13 @@ func (m dashboardModel) View() string {
 	case UserEditState:
 		rightPanelModel = m.userList
 	}
+
+	// Navigator styling
+	m.navigator.Styles.Title = m.navigator.Styles.Title.Foreground(palette.accent)
+	m.navigator.Styles.TabBlurred = m.navigator.Styles.TabBlurred.Foreground(palette.fgMuted).Faint(true)
+	m.navigator.Styles.TabFocused = m.navigator.Styles.TabFocused.Foreground(palette.fg).BorderForeground(palette.fg)
+	m.navigator.Styles.Separator = m.navigator.Styles.Separator.Foreground(palette.fgMuted).Bold(true)
+	navigatorContainer := lipgloss.NewStyle().Padding(0, 1)
 
 	// Panel styling
 
@@ -256,7 +276,7 @@ func (m dashboardModel) View() string {
 	output := dashBoardStyle.Render(
 
 		lipgloss.JoinVertical(lipgloss.Top,
-
+			navigatorContainer.Render(m.navigator.View()),
 			lipgloss.JoinHorizontal(
 				lipgloss.Left,
 				leftPanelStyle.Render(leftPanelModel.View()),
