@@ -301,13 +301,13 @@ func (m dashboardModel) View() string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(palette.border).
 		Height(m.innerHeight).
-		AlignHorizontal(lipgloss.Center)
+		AlignHorizontal(lipgloss.Left)
 
 	panelStyleFocused := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(palette.selectedBorder).
 		Height(m.innerHeight).
-		AlignHorizontal(lipgloss.Center)
+		AlignHorizontal(lipgloss.Left)
 
 	// Panel styling per tab and panel focus
 
@@ -327,6 +327,7 @@ func (m dashboardModel) View() string {
 			fullPanelStyle = panelStyleFocused.
 				Width(m.innerWidth).
 				AlignVertical(lipgloss.Center).
+				AlignHorizontal(lipgloss.Center).
 				Foreground(palette.fgMuted)
 		default:
 			fullPanelStyle = panelStyleBlurred.

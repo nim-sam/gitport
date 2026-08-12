@@ -20,6 +20,14 @@ func main() {
 			WithName("Charlie").
 			WithSshKey("pweaseletmein").
 			WithAccessLevel(auth.ReadOnly),
+		auth.NewUser().
+			WithName("Dalia").
+			WithSshKey("p123123412341234").
+			WithAccessLevel(auth.ReadOnly),
+		auth.NewUser().
+			WithName("Esme").
+			WithSshKey("df2q3ewr2").
+			WithAccessLevel(auth.Admin),
 	}
 
 	d := ui.NewDashboard(userListTest[:])

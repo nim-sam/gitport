@@ -30,17 +30,23 @@ func (u UserListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (u UserListModel) View() string {
 
 	// Title styles
-	u.listModel.Title = "User Management"
-	u.listModel.Styles.Title = lipgloss.NewStyle().
-		Foreground(palette.accent)
+	// u.listModel.Title = "Users"
+	// u.listModel.Styles.Title = lipgloss.NewStyle().
+	// 	Foreground(palette.accent)
+
+	u.listModel.SetShowTitle(false)
 
 	// TitleBar styles
-	u.listModel.Styles.TitleBar = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder(), false, false, true, false).
-		BorderForeground(palette.border).
-		Width(u.width - 2).
-		AlignHorizontal(lipgloss.Center)
+	// u.listModel.Styles.TitleBar = lipgloss.NewStyle().
+	// 	Border(lipgloss.RoundedBorder(), false, false, true, false).
+	// 	BorderForeground(palette.border).
+	// 	Width(u.width - 2).
+	// 	AlignHorizontal(lipgloss.Center)
+
+	// Other configs
 	u.listModel.SetShowHelp(false)
+
+	u.listModel.SetStatusBarItemName("user", "users")
 
 	userListModelView := u.listModel.View()
 
@@ -72,7 +78,7 @@ func (i userItem) Description() string {
 		accessLevelDisplay = "Admin"
 	}
 
-	return fmt.Sprintf("%s ~ %s", accessLevelDisplay, i.sshKey)
+	return fmt.Sprintf("%s | %s", accessLevelDisplay, i.sshKey)
 }
 
 func newUserList(users []*auth.User) UserListModel {
@@ -89,15 +95,15 @@ func newUserList(users []*auth.User) UserListModel {
 
 	delegate := list.NewDefaultDelegate()
 	delegate.Styles.SelectedTitle = lipgloss.NewStyle().
-		Foreground(palette.listSelect).
+		Foreground(palette.accent).
 		Border(lipgloss.NormalBorder(), false, false, false, true).
 		Padding(0, 1).
-		BorderForeground(palette.listSelect)
+		BorderForeground(palette.accent)
 	delegate.Styles.SelectedDesc = lipgloss.NewStyle().
-		Foreground(palette.listSelect).
+		Foreground(palette.accent).
 		Border(lipgloss.NormalBorder(), false, false, false, true).
 		Padding(0, 1).
-		BorderForeground(palette.listSelect)
+		BorderForeground(palette.accent)
 
 	return UserListModel{
 		users:     userList,
