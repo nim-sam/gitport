@@ -96,12 +96,12 @@ func newUserList(users []*auth.User) UserListModel {
 	delegate := list.NewDefaultDelegate()
 	delegate.Styles.SelectedTitle = lipgloss.NewStyle().
 		Foreground(palette.accent).
-		Border(lipgloss.NormalBorder(), false, false, false, true).
+		Border(lipgloss.HiddenBorder(), false, false, false, true).
 		Padding(0, 1).
 		BorderForeground(palette.accent)
 	delegate.Styles.SelectedDesc = lipgloss.NewStyle().
 		Foreground(palette.accent).
-		Border(lipgloss.NormalBorder(), false, false, false, true).
+		Border(lipgloss.HiddenBorder(), false, false, false, true).
 		Padding(0, 1).
 		BorderForeground(palette.accent)
 
