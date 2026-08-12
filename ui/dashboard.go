@@ -28,6 +28,7 @@ type dashboardFocus int
 const (
 	leftPanel dashboardFocus = iota
 	rightPanel
+	fullPanel
 	popUpPanel
 )
 
@@ -119,8 +120,8 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.innerHeight = int(float32(m.screenHeight) * 0.60)
 
 		// Left-Right panel dimensions
-		m.leftWidth = int(float32(m.innerWidth)*0.50) - 1
-		m.rightWidth = m.innerWidth - m.leftWidth - 1
+		m.leftWidth = int(float32(m.innerWidth) * 0.50)
+		m.rightWidth = m.innerWidth - m.leftWidth - 2
 
 		// Navigator inherits width from inner width
 		m.navigator.Width = m.innerWidth
@@ -197,8 +198,22 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Handling tab selection
+
+	previousTab := m.tab
+
 	m.navigator, _ = m.navigator.Update(msg)
 	m.tab = tabFocus(m.navigator.Index())
+
+	// Reset Focus when switching tabs
+
+	if m.tab != previousTab {
+		switch m.tab {
+		case userManagement:
+			m.focus = leftPanel
+		case commitHistory, serverLogs:
+			m.focus = fullPanel
+		}
+	}
 
 	// Passing messages to dashboard sub-models
 
@@ -221,6 +236,8 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.userModificationForm.UpdateInputs(msg)
 			m.userModificationForm.selector.UpdateSelection(msg)
 		}
+	case commitHistory, serverLogs:
+		m.focus = fullPanel
 	}
 
 	m.help, _ = m.help.Update(msg)
@@ -234,6 +251,9 @@ func (m dashboardModel) View() string {
 
 	var leftPanelContent string
 	var rightPanelContent string
+	var fullPanelContent string
+
+	// Tab View Content Management
 
 	switch m.tab {
 	// User Management Tab
@@ -253,15 +273,13 @@ func (m dashboardModel) View() string {
 	case commitHistory:
 		switch m.state {
 		default:
-			leftPanelContent = "Commit History Left Panel"
-			rightPanelContent = "Commit History Right panel"
+			fullPanelContent = "Commit History Coming Soon..."
 		}
 	// Server Logs Tab
 	case serverLogs:
 		switch m.state {
 		default:
-			leftPanelContent = "Server Logs Left Panel"
-			rightPanelContent = "Server Logs Right Panel"
+			fullPanelContent = "Server Logs Coming Soon..."
 		}
 	}
 
@@ -273,8 +291,9 @@ func (m dashboardModel) View() string {
 	m.navigator.Styles.Separator = m.navigator.Styles.Separator.Foreground(palette.fgMuted).Bold(true)
 	navigatorContainer := lipgloss.NewStyle().Padding(0, 1)
 
-	// Panel styling
+	// Panel Styling
 
+	var fullPanelStyle lipgloss.Style
 	var leftPanelStyle lipgloss.Style
 	var rightPanelStyle lipgloss.Style
 
@@ -290,14 +309,31 @@ func (m dashboardModel) View() string {
 		Height(m.innerHeight).
 		AlignHorizontal(lipgloss.Center)
 
-	if m.focus == leftPanel {
-		leftPanelStyle = panelStyleFocused.Width(m.leftWidth)
-		rightPanelStyle = panelStyleBlurred.Width(m.rightWidth)
-	}
+	// Panel styling per tab and panel focus
 
-	if m.focus == rightPanel {
-		leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
-		rightPanelStyle = panelStyleFocused.Width(m.rightWidth)
+	switch m.tab {
+	case userManagement:
+		switch m.focus {
+		case leftPanel:
+			leftPanelStyle = panelStyleFocused.Width(m.leftWidth)
+			rightPanelStyle = panelStyleBlurred.Width(m.rightWidth)
+		case rightPanel:
+			leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
+			rightPanelStyle = panelStyleFocused.Width(m.rightWidth)
+		}
+	case commitHistory, serverLogs:
+		switch m.focus {
+		case fullPanel:
+			fullPanelStyle = panelStyleFocused.
+				Width(m.innerWidth).
+				AlignVertical(lipgloss.Center).
+				Foreground(palette.fgMuted)
+		default:
+			fullPanelStyle = panelStyleBlurred.
+				Width(m.innerWidth).
+				AlignVertical(lipgloss.Center).
+				Foreground(palette.fgMuted)
+		}
 	}
 
 	// Pop-up window styling
@@ -313,6 +349,11 @@ func (m dashboardModel) View() string {
 		rightPanelStyle = panelStyleBlurred.Width(m.rightWidth)
 	}
 
+	// HelpBar Styling
+	helpBarStyle := lipgloss.NewStyle().
+		Width(m.innerWidth).
+		Padding(1, 0, 0, 0)
+
 	// Terminal window-sized application container, that will be containing
 	// the left and right panels, centered vertically and horizontally
 	dashBoardStyle := lipgloss.NewStyle().
@@ -320,17 +361,34 @@ func (m dashboardModel) View() string {
 		Height(m.screenHeight).
 		Align(lipgloss.Center, lipgloss.Center)
 
-	// Aggregating the left and right panels inside dashBoardStyle
-	output := dashBoardStyle.Render(
+	// Aggregating panels and UI elements to form dashboard view
 
+	var screenSetup string
+
+	fullScreenSetup := fullPanelStyle.Render(fullPanelContent)
+
+	splitScreenSetup := lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		leftPanelStyle.Render(leftPanelContent),
+		rightPanelStyle.Render(rightPanelContent),
+	)
+
+	// Setup configuarion with respect to tab focused
+
+	switch m.tab {
+	case userManagement:
+		screenSetup = splitScreenSetup
+	case commitHistory:
+		screenSetup = fullScreenSetup
+	case serverLogs:
+		screenSetup = fullScreenSetup
+	}
+
+	output := dashBoardStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Top,
 			navigatorContainer.Render(m.navigator.View()),
-			lipgloss.JoinHorizontal(
-				lipgloss.Left,
-				leftPanelStyle.Render(leftPanelContent),
-				rightPanelStyle.Render(rightPanelContent),
-			),
-			m.help.View(),
+			screenSetup,
+			helpBarStyle.Render(m.help.View()),
 		))
 
 	// Injecting Pop-up window
