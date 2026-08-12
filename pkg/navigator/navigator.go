@@ -33,14 +33,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+right":
-			if m.selectedTab < m.size-1 {
-				m.selectedTab++
-			}
-		case "ctrl+left":
-			if m.selectedTab > 0 {
-				m.selectedTab--
-			}
+		case "tab":
+			m.selectedTab = (m.selectedTab + 1) % m.size
 		}
 	}
 
