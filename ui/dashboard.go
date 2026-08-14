@@ -8,6 +8,7 @@ import (
 
 	overlay "github.com/floatpane/bubble-overlay"
 	"github.com/nim-sam/gitport/internal/auth"
+	"github.com/nim-sam/gitport/internal/git"
 	"github.com/nim-sam/gitport/pkg/navigator"
 )
 
@@ -70,12 +71,15 @@ type dashboardModel struct {
 	// Form for user information modification
 	userModificationForm UserFormModel
 
+	// Commit History
+	commitHistory CommitHistoryModel
+
 	// Help
 	help HelpModel
 }
 
 // Inititializes and instantiates dashboard mdoel
-func NewDashboard(users []*auth.User) dashboardModel {
+func NewDashboard(users []*auth.User, commits []*git.Commit) dashboardModel {
 
 	nav := navigator.New()
 	nav.Title = "GitPort"
@@ -87,12 +91,15 @@ func NewDashboard(users []*auth.User) dashboardModel {
 
 	umf := newUserModificationFormModel()
 
+	ch := NewCommitHistory(commits)
+
 	h := newHelp()
 
 	// Return new dashboard model
 	return dashboardModel{
 		navigator:            nav,
 		userList:             u,
+		commitHistory:        ch,
 		userCreationForm:     ucf,
 		userModificationForm: umf,
 		help:                 h,
@@ -138,6 +145,10 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// UserModificatoinForm inherits dimensions from right panel
 		m.userModificationForm.width = m.rightWidth
 		m.userModificationForm.heigt = int(float32(m.innerHeight) * 2 / 3)
+
+		// CommitHistory inherits diemnsions from full panel
+		m.commitHistory.heigth = m.innerHeight
+		m.commitHistory.width = m.innerWidth
 
 		// Help inherits dimenaions from innerWidth
 		m.help.width = m.innerWidth
@@ -236,7 +247,10 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.userModificationForm.UpdateInputs(msg)
 			m.userModificationForm.selector.UpdateSelection(msg)
 		}
-	case commitHistory, serverLogs:
+	case commitHistory:
+		m.focus = fullPanel
+		m.commitHistory, _ = m.commitHistory.Update(msg)
+	case serverLogs:
 		m.focus = fullPanel
 	}
 
@@ -273,7 +287,7 @@ func (m dashboardModel) View() string {
 	case commitHistory:
 		switch m.state {
 		default:
-			fullPanelContent = "Commit History Coming Soon..."
+			fullPanelContent = m.commitHistory.View()
 		}
 	// Server Logs Tab
 	case serverLogs:
