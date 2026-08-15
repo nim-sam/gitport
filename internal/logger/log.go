@@ -10,23 +10,23 @@ const (
 )
 
 // Struct holding server log information
-type log struct {
+type Log struct {
 	level   LogLevel
 	time    string
 	message string
 }
 
 // Log constructor
-func New() *log {
-	return &log{}
+func New() *Log {
+	return &Log{}
 }
 
 // Log getters
-func (l log) Level() LogLevel { return l.level }
-func (l log) Time() string    { return l.time }
-func (l log) Message() string { return l.message }
+func (l Log) Level() LogLevel { return l.level }
+func (l Log) Time() string    { return l.time }
+func (l Log) Message() string { return l.message }
 
 // Log setters
-func (l *log) WithLevel(level LogLevel) *log { l.level = level; return l }
-func (l *log) WithTime(time string) *log     { l.time = time; return l }
-func (l *log) WithMessage(msg string) *log   { l.message = msg }
+func (l *Log) WithLevel(level LogLevel) *Log { l.level = level; return l }
+func (l *Log) WithTime(time string) *Log     { l.time = time; return l }
+func (l *Log) WithMessage(msg string) *Log   { l.message = msg }
