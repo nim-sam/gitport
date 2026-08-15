@@ -36,12 +36,14 @@ func main() {
 			WithAuthor("Alice").
 			WithHash("abcdefg").
 			WithMessage("First Commit").
-			WithDate("today"),
+			WithDate("today").
+			WithBranch("remote/master"),
 		git.NewCommit().
 			WithAuthor("Bob").
 			WithHash("1234567").
 			WithMessage("Second Commit").
-			WithDate("july 7th 2026"),
+			WithDate("july 7th 2026").
+			WithBranch("remote/feature1"),
 	}
 
 	d := ui.NewDashboard(userListTest[:], commitHistoryTest[:])
