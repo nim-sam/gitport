@@ -1,4 +1,4 @@
-package logger
+package log
 
 // Enum categorizing logs into three levels : Warning, Error, Info
 type LogLevel int
@@ -17,7 +17,7 @@ type Log struct {
 }
 
 // Log constructor
-func New() *Log {
+func NewLog() *Log {
 	return &Log{}
 }
 
