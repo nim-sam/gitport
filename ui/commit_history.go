@@ -20,7 +20,7 @@ func (i CommitItem) Title() string {
 	return "[" + i.hash + "] " + i.message
 }
 func (i CommitItem) Description() string {
-	return i.author + " @ " + i.date
+	return i.author + " @ " + i.date + " (" + i.branch + ")"
 }
 
 type CommitHistoryModel struct {
