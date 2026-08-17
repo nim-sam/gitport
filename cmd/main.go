@@ -60,6 +60,79 @@ func main() {
 			WithLevel(logs.Info).
 			WithDate("2026/05/17 @ 16:07 UTC").
 			WithMessage("Server accepted connection from so and so user."),
+		logs.NewLog().
+			WithLevel(logs.Warning).
+			WithDate("2026/05/17 @ 16:00 UTC").
+			WithMessage("The server is missing so and so information. Might compromise so and so features."),
+		logs.NewLog().
+			WithLevel(logs.Error).
+			WithDate("2026/05/17 @ 16:05 UTC").
+			WithMessage("Somthing in the server failed. Whoops!"),
+		logs.NewLog().
+			WithLevel(logs.Info).
+			WithDate("2026/05/17 @ 16:07 UTC").
+			WithMessage("Server accepted connection from so and so user."),
+		logs.NewLog().
+			WithLevel(logs.Warning).
+			WithDate("2026/05/17 @ 16:00 UTC").
+			WithMessage("The server is missing so and so information. Might compromise so and so features."),
+		logs.NewLog().
+			WithLevel(logs.Error).
+			WithDate("2026/05/17 @ 16:05 UTC").
+			WithMessage("Somthing in the server failed. Whoops!"),
+		logs.NewLog().
+			WithLevel(logs.Info).
+			WithDate("2026/05/17 @ 16:07 UTC").
+			WithMessage("Server accepted connection from so and so user."),
+		logs.NewLog().
+			WithLevel(logs.Warning).
+			WithDate("2026/05/17 @ 16:00 UTC").
+			WithMessage("The server is missing so and so information. Might compromise so and so features."),
+		logs.NewLog().
+			WithLevel(logs.Error).
+			WithDate("2026/05/17 @ 16:05 UTC").
+			WithMessage("Somthing in the server failed. Whoops!"),
+		logs.NewLog().
+			WithLevel(logs.Info).
+			WithDate("2026/05/17 @ 16:07 UTC").
+			WithMessage("Server accepted connection from so and so user."),
+		logs.NewLog().
+			WithLevel(logs.Warning).
+			WithDate("2026/05/17 @ 16:00 UTC").
+			WithMessage("The server is missing so and so information. Might compromise so and so features."),
+		logs.NewLog().
+			WithLevel(logs.Error).
+			WithDate("2026/05/17 @ 16:05 UTC").
+			WithMessage("Somthing in the server failed. Whoops!"),
+		logs.NewLog().
+			WithLevel(logs.Info).
+			WithDate("2026/05/17 @ 16:07 UTC").
+			WithMessage("Server accepted connection from so and so user."),
+		logs.NewLog().
+			WithLevel(logs.Warning).
+			WithDate("2026/05/17 @ 16:00 UTC").
+			WithMessage("The server is missing so and so information. Might compromise so and so features."),
+		logs.NewLog().
+			WithLevel(logs.Error).
+			WithDate("2026/05/17 @ 16:05 UTC").
+			WithMessage("Somthing in the server failed. Whoops!"),
+		logs.NewLog().
+			WithLevel(logs.Info).
+			WithDate("2026/05/17 @ 16:07 UTC").
+			WithMessage("Server accepted connection from so and so user."),
+		logs.NewLog().
+			WithLevel(logs.Warning).
+			WithDate("2026/05/17 @ 16:00 UTC").
+			WithMessage("The server is missing so and so information. Might compromise so and so features."),
+		logs.NewLog().
+			WithLevel(logs.Error).
+			WithDate("2026/05/17 @ 16:05 UTC").
+			WithMessage("Somthing in the server failed. Whoops!"),
+		logs.NewLog().
+			WithLevel(logs.Info).
+			WithDate("2026/05/17 @ 16:07 UTC").
+			WithMessage("Server accepted connection from so and so user."),
+
 	}
 
 	_ = serverLogsTest
