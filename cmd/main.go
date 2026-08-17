@@ -64,7 +64,7 @@ func main() {
 
 	_ = serverLogsTest
 
-	d := ui.NewDashboard(userListTest[:], commitHistoryTest[:])
+	d := ui.NewDashboard(userListTest[:], commitHistoryTest[:], serverLogsTest[:])
 
 	p := tea.NewProgram(d, tea.WithAltScreen())
 	p.Run()

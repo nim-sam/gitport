@@ -9,6 +9,7 @@ import (
 	overlay "github.com/floatpane/bubble-overlay"
 	"github.com/nim-sam/gitport/internal/auth"
 	"github.com/nim-sam/gitport/internal/git"
+	"github.com/nim-sam/gitport/internal/logs"
 	"github.com/nim-sam/gitport/pkg/navigator"
 )
 
@@ -74,12 +75,15 @@ type dashboardModel struct {
 	// Commit History
 	commitHistory CommitHistoryModel
 
+	// Server Logs
+	serverLogs ServerLogsModel
+
 	// Help
 	help HelpModel
 }
 
 // Inititializes and instantiates dashboard mdoel
-func NewDashboard(users []*auth.User, commits []*git.Commit) dashboardModel {
+func NewDashboard(users []*auth.User, commits []*git.Commit, l []*logs.Log) dashboardModel {
 
 	nav := navigator.New()
 	nav.Title = "GitPort"
@@ -93,6 +97,8 @@ func NewDashboard(users []*auth.User, commits []*git.Commit) dashboardModel {
 
 	ch := NewCommitHistory(commits)
 
+	sl := NewServerLogsModel(l)
+
 	h := newHelp()
 
 	// Return new dashboard model
@@ -100,6 +106,7 @@ func NewDashboard(users []*auth.User, commits []*git.Commit) dashboardModel {
 		navigator:            nav,
 		userList:             u,
 		commitHistory:        ch,
+		serverLogs:           sl,
 		userCreationForm:     ucf,
 		userModificationForm: umf,
 		help:                 h,
@@ -133,7 +140,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Navigator inherits width from inner width
 		m.navigator.Width = m.innerWidth
 
-		// UserList inherits diemensions from left panel
+		// UserList inherits dimensions from left panel
 		m.userList.height = m.innerHeight
 		m.userList.width = m.leftWidth
 		m.userList.listModel.SetSize(m.userList.width, m.userList.height)
@@ -146,9 +153,13 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.userModificationForm.width = m.rightWidth
 		m.userModificationForm.heigt = int(float32(m.innerHeight) * 2 / 3)
 
-		// CommitHistory inherits diemnsions from full panel
+		// CommitHistory inherits dimensions from full panel
 		m.commitHistory.heigth = m.innerHeight
 		m.commitHistory.width = m.innerWidth
+
+		// ServerLogs inherits dimensions from full panel
+		m.serverLogs.width = m.innerWidth
+		m.serverLogs.height = m.innerHeight
 
 		// Help inherits dimenaions from innerWidth
 		m.help.width = m.innerWidth
@@ -252,6 +263,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.commitHistory, _ = m.commitHistory.Update(msg)
 	case serverLogs:
 		m.focus = fullPanel
+		m.serverLogs, _ = m.serverLogs.Update(msg)
 	}
 
 	m.help, _ = m.help.Update(msg)
@@ -293,7 +305,7 @@ func (m dashboardModel) View() string {
 	case serverLogs:
 		switch m.state {
 		default:
-			fullPanelContent = "Server Logs Coming Soon..."
+			fullPanelContent = m.serverLogs.View()
 		}
 	}
 
