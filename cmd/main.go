@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nim-sam/gitport/internal/auth"
 	"github.com/nim-sam/gitport/internal/git"
+	"github.com/nim-sam/gitport/internal/logs"
 	"github.com/nim-sam/gitport/ui"
 )
 
@@ -45,6 +46,23 @@ func main() {
 			WithDate("july 7th 2026").
 			WithBranch("remote/feature1"),
 	}
+
+	serverLogsTest := [...]*logs.Log{
+		logs.NewLog().
+			WithLevel(logs.Warning).
+			WithDate("2026/05/17 @ 16:00 UTC").
+			WithMessage("The server is missing so and so information. Might compromise so and so features."),
+		logs.NewLog().
+			WithLevel(logs.Error).
+			WithDate("2026/05/17 @ 16:05 UTC").
+			WithMessage("Somthing in the server failed. Whoops!"),
+		logs.NewLog().
+			WithLevel(logs.Info).
+			WithDate("2026/05/17 @ 16:07 UTC").
+			WithMessage("Server accepted connection from so and so user."),
+	}
+
+	_ = serverLogsTest
 
 	d := ui.NewDashboard(userListTest[:], commitHistoryTest[:])
 
