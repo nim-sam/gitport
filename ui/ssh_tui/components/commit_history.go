@@ -82,6 +82,17 @@ func NewCommitHistory(commits []*git.Commit) CommitHistoryModel {
 	delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.
 		Italic(true).
 		Foreground(ui.Palette.FgMuted)
+	delegate.Styles.DimmedTitle = lipgloss.NewStyle().
+		Foreground(ui.Palette.Fg).
+		Border(lipgloss.HiddenBorder(), false, false, false, true).
+		Padding(0, 1).
+		Faint(true)
+	delegate.Styles.DimmedDesc = lipgloss.NewStyle().
+		Foreground(ui.Palette.FgMuted).
+		Border(lipgloss.HiddenBorder(), false, false, false, true).
+		Padding(0, 1).
+		Italic(true).
+		Faint(true)
 
 	// Creating list model
 	model := list.New(commitItems, delegate, 0, 0)

@@ -118,6 +118,17 @@ func NewUserList(users []*auth.User) UserListModel {
 		Border(lipgloss.HiddenBorder(), false, false, false, true).
 		Padding(0, 1).
 		Italic(true)
+	delegate.Styles.DimmedTitle = lipgloss.NewStyle().
+		Foreground(ui.Palette.Fg).
+		Border(lipgloss.HiddenBorder(), false, false, false, true).
+		Padding(0, 1).
+		Faint(true)
+	delegate.Styles.DimmedDesc = lipgloss.NewStyle().
+		Foreground(ui.Palette.FgMuted).
+		Border(lipgloss.HiddenBorder(), false, false, false, true).
+		Padding(0, 1).
+		Italic(true).
+		Faint(true)
 
 	return UserListModel{
 		users:     userList,
