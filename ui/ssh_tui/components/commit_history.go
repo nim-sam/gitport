@@ -1,10 +1,11 @@
-package ui
+package components
 
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nim-sam/gitport/internal/git"
+	"github.com/nim-sam/gitport/ui"
 )
 
 type CommitItem struct {
@@ -27,20 +28,20 @@ type CommitHistoryModel struct {
 	selectedCommit int
 	listModel      list.Model
 	commits        []*git.Commit
-	width          int
-	heigth         int
+	Width          int
+	Height         int
 }
 
 func (c CommitHistoryModel) Init() tea.Cmd { return nil }
 func (c CommitHistoryModel) Update(msg tea.Msg) (CommitHistoryModel, tea.Cmd) {
-	c.listModel.SetSize(c.width, c.heigth)
+	c.listModel.SetSize(c.Width, c.Height)
 	c.listModel, _ = c.listModel.Update(msg)
 	return c, nil
 }
 func (c CommitHistoryModel) View() string {
 
 	container := lipgloss.NewStyle().
-		Width(c.width)
+		Width(c.Width)
 		// Padding(0, 1)
 
 	return container.Render(c.listModel.View())
@@ -65,22 +66,22 @@ func NewCommitHistory(commits []*git.Commit) CommitHistoryModel {
 	// Defining new delegate
 	delegate := list.NewDefaultDelegate()
 	delegate.Styles.SelectedTitle = lipgloss.NewStyle().
-		Foreground(palette.accent).
+		Foreground(ui.Palette.Accent).
 		Border(lipgloss.HiddenBorder(), false, false, false, true).
 		Padding(0, 1).
-		BorderForeground(palette.accent).
+		BorderForeground(ui.Palette.Accent).
 		Bold(true)
 	delegate.Styles.SelectedDesc = lipgloss.NewStyle().
-		Foreground(palette.accent).
+		Foreground(ui.Palette.Accent).
 		Border(lipgloss.HiddenBorder(), false, false, false, true).
 		Padding(0, 1).
-		BorderForeground(palette.accent).
+		BorderForeground(ui.Palette.Accent).
 		Italic(true)
 	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
-		Foreground(palette.fgHighlight)
+		Foreground(ui.Palette.FgHighlight)
 	delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.
 		Italic(true).
-		Foreground(palette.fgMuted)
+		Foreground(ui.Palette.FgMuted)
 
 	// Creating list model
 	model := list.New(commitItems, delegate, 0, 0)

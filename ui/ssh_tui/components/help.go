@@ -1,4 +1,4 @@
-package ui
+package components
 
 import (
 	"github.com/charmbracelet/bubbles/help"
@@ -65,15 +65,15 @@ type HelpModel struct {
 	keys    DashboardKeys
 	help    help.Model
 	lastKey string
-	width   int
-	height  int
+	Width   int
+	Height  int
 }
 
-func newHelp() HelpModel {
+func NewHelp() HelpModel {
 	return HelpModel{
 		keys:   keys,
 		help:   help.New(),
-		height: 2,
+		Height: 2,
 	}
 }
 
@@ -112,7 +112,7 @@ func (m HelpModel) Update(msg tea.Msg) (HelpModel, tea.Cmd) {
 
 func (m HelpModel) View() string {
 
-	helpContainer := lipgloss.NewStyle().Width(m.width).Height(m.height).AlignHorizontal(lipgloss.Center)
+	helpContainer := lipgloss.NewStyle().Width(m.Width).Height(m.Height).AlignHorizontal(lipgloss.Center)
 
 	return helpContainer.Render(m.help.View(m.keys))
 }

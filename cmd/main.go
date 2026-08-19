@@ -5,7 +5,7 @@ import (
 	"github.com/nim-sam/gitport/internal/auth"
 	"github.com/nim-sam/gitport/internal/git"
 	"github.com/nim-sam/gitport/internal/logs"
-	"github.com/nim-sam/gitport/ui"
+	"github.com/nim-sam/gitport/ui/ssh_tui"
 )
 
 func main() {
@@ -141,7 +141,7 @@ func main() {
 
 	_ = serverLogsTest
 
-	d := ui.NewDashboard(userListTest[:], commitHistoryTest[:], serverLogsTest[:])
+	d := ssh_tui.NewDashboard(userListTest[:], commitHistoryTest[:], serverLogsTest[:])
 
 	p := tea.NewProgram(d, tea.WithAltScreen())
 	p.Run()

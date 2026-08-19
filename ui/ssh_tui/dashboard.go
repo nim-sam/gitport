@@ -1,4 +1,4 @@
-package ui
+package ssh_tui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
@@ -11,6 +11,9 @@ import (
 	"github.com/nim-sam/gitport/internal/git"
 	"github.com/nim-sam/gitport/internal/logs"
 	"github.com/nim-sam/gitport/pkg/navigator"
+
+	"github.com/nim-sam/gitport/ui"
+	"github.com/nim-sam/gitport/ui/ssh_tui/components"
 )
 
 // Dashboard states
@@ -48,7 +51,7 @@ const (
 type dashboardModel struct {
 
 	// UserList-related specs
-	userList UserListModel
+	userList components.UserListModel
 
 	// Dashboard-related specs
 	screenWidth  int
@@ -67,19 +70,19 @@ type dashboardModel struct {
 	navigator navigator.Model
 
 	// Form for new user creation
-	userCreationForm UserFormModel
+	userCreationForm components.UserFormModel
 
 	// Form for user information modification
-	userModificationForm UserFormModel
+	userModificationForm components.UserFormModel
 
 	// Commit History
-	commitHistory CommitHistoryModel
+	commitHistory components.CommitHistoryModel
 
 	// Server Logs
-	serverLogs ServerLogsModel
+	serverLogs components.ServerLogsModel
 
 	// Help
-	help HelpModel
+	help components.HelpModel
 }
 
 // Inititializes and instantiates dashboard mdoel
@@ -89,17 +92,17 @@ func NewDashboard(users []*auth.User, commits []*git.Commit, l []*logs.Log) dash
 	nav.Title = "GitPort"
 	nav.SetTabs("User Management", "Commit History", "Server Logs")
 
-	u := newUserList(users)
+	u := components.NewUserList(users)
 
-	ucf := newUserCreationFormModel()
+	ucf := components.NewUserCreationFormModel()
 
-	umf := newUserModificationFormModel()
+	umf := components.NewUserModificationFormModel()
 
-	ch := NewCommitHistory(commits)
+	ch := components.NewCommitHistory(commits)
 
-	sl := NewServerLogsModel(l)
+	sl := components.NewServerLogsModel(l)
 
-	h := newHelp()
+	h := components.NewHelp()
 
 	// Return new dashboard model
 	return dashboardModel{
@@ -141,28 +144,28 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.navigator.Width = m.innerWidth
 
 		// UserList inherits dimensions from left panel
-		m.userList.height = m.innerHeight
-		m.userList.width = m.leftWidth
-		m.userList.listModel.SetSize(m.userList.width, m.userList.height)
+		m.userList.Height = m.innerHeight
+		m.userList.Width = m.leftWidth
+		m.userList.ListModel.SetSize(m.userList.Width, m.userList.Height)
 
 		// UserCreationForm inherits dimensions from right panel
-		m.userCreationForm.width = m.rightWidth
-		m.userCreationForm.heigt = int(float32(m.innerHeight) * 2 / 3)
+		m.userCreationForm.Width = m.rightWidth
+		m.userCreationForm.Height = int(float32(m.innerHeight) * 2 / 3)
 
 		// UserModificatoinForm inherits dimensions from right panel
-		m.userModificationForm.width = m.rightWidth
-		m.userModificationForm.heigt = int(float32(m.innerHeight) * 2 / 3)
+		m.userModificationForm.Width = m.rightWidth
+		m.userModificationForm.Height = int(float32(m.innerHeight) * 2 / 3)
 
 		// CommitHistory inherits dimensions from full panel
-		m.commitHistory.heigth = m.innerHeight
-		m.commitHistory.width = m.leftWidth
+		m.commitHistory.Height = m.innerHeight
+		m.commitHistory.Width = m.leftWidth
 
 		// ServerLogs inherits dimensions from full panel
-		m.serverLogs.width = m.innerWidth
-		m.serverLogs.height = m.innerHeight
+		m.serverLogs.Width = m.innerWidth
+		m.serverLogs.Height = m.innerHeight
 
 		// Help inherits dimenaions from innerWidth
-		m.help.width = m.innerWidth
+		m.help.Width = m.innerWidth
 
 	case tea.KeyMsg:
 
@@ -197,11 +200,11 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.state = EditState
 
 					// Fetch currently selected user and populate data in pop-up
-					currentUserIndex := m.userList.listModel.Index()
-					currentUser := m.userList.userData[currentUserIndex]
-					m.userModificationForm.inputs[0].SetValue(currentUser.Name())
-					m.userModificationForm.inputs[1].SetValue(currentUser.SshKey())
-					m.userModificationForm.selector.SetValue(int(currentUser.AccessLevel()))
+					currentUserIndex := m.userList.ListModel.Index()
+					currentUser := m.userList.UserData[currentUserIndex]
+					m.userModificationForm.Inputs[0].SetValue(currentUser.Name())
+					m.userModificationForm.Inputs[1].SetValue(currentUser.SshKey())
+					m.userModificationForm.Selector.SetValue(int(currentUser.AccessLevel()))
 				}
 			}
 
@@ -245,18 +248,18 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Broswing users
 		case DefaultState:
 			if m.focus == leftPanel {
-				m.userList.listModel, _ = m.userList.listModel.Update(msg)
+				m.userList.ListModel, _ = m.userList.ListModel.Update(msg)
 			}
 		// Creating user
 		case CreateState:
 			m.focus = popUpPanel
 			m.userCreationForm.UpdateInputs(msg)
-			m.userCreationForm.selector.UpdateSelection(msg)
+			m.userCreationForm.Selector.UpdateSelection(msg)
 		// Editing user
 		case EditState:
 			m.focus = popUpPanel
 			m.userModificationForm.UpdateInputs(msg)
-			m.userModificationForm.selector.UpdateSelection(msg)
+			m.userModificationForm.Selector.UpdateSelection(msg)
 		}
 	case commitHistory:
 		// m.focus = leftPanel
@@ -312,10 +315,10 @@ func (m dashboardModel) View() string {
 
 	// Navigator styling
 
-	m.navigator.Styles.Title = m.navigator.Styles.Title.Foreground(palette.accent)
-	m.navigator.Styles.TabBlurred = m.navigator.Styles.TabBlurred.Foreground(palette.fgMuted).Faint(true)
-	m.navigator.Styles.TabFocused = m.navigator.Styles.TabFocused.Foreground(palette.fg).BorderForeground(palette.fg)
-	m.navigator.Styles.Separator = m.navigator.Styles.Separator.Foreground(palette.fgMuted).Bold(true)
+	m.navigator.Styles.Title = m.navigator.Styles.Title.Foreground(ui.Palette.Accent)
+	m.navigator.Styles.TabBlurred = m.navigator.Styles.TabBlurred.Foreground(ui.Palette.FgMuted).Faint(true)
+	m.navigator.Styles.TabFocused = m.navigator.Styles.TabFocused.Foreground(ui.Palette.Fg).BorderForeground(ui.Palette.Fg)
+	m.navigator.Styles.Separator = m.navigator.Styles.Separator.Foreground(ui.Palette.FgMuted).Bold(true)
 	navigatorContainer := lipgloss.NewStyle().Padding(0, 1)
 
 	// Panel Styling
@@ -326,13 +329,13 @@ func (m dashboardModel) View() string {
 
 	panelStyleBlurred := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(palette.border).
+		BorderForeground(ui.Palette.Border).
 		Height(m.innerHeight).
 		AlignHorizontal(lipgloss.Left)
 
 	panelStyleFocused := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(palette.selectedBorder).
+		BorderForeground(ui.Palette.SelectedBorder).
 		Height(m.innerHeight).
 		AlignHorizontal(lipgloss.Left)
 
@@ -355,12 +358,12 @@ func (m dashboardModel) View() string {
 				Width(m.innerWidth).
 				AlignVertical(lipgloss.Center).
 				AlignHorizontal(lipgloss.Center).
-				Foreground(palette.fgMuted)
+				Foreground(ui.Palette.FgMuted)
 		default:
 			fullPanelStyle = panelStyleBlurred.
 				Width(m.innerWidth).
 				AlignVertical(lipgloss.Center).
-				Foreground(palette.fgMuted)
+				Foreground(ui.Palette.FgMuted)
 		}
 	}
 
@@ -369,10 +372,10 @@ func (m dashboardModel) View() string {
 		Width(m.rightWidth).
 		Height(int(float32(m.innerHeight) * 2.0 / 3.0)).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(palette.border)
+		BorderForeground(ui.Palette.Border)
 
 	if m.focus == popUpPanel {
-		popUpStyle = popUpStyle.BorderForeground(palette.selectedBorder)
+		popUpStyle = popUpStyle.BorderForeground(ui.Palette.SelectedBorder)
 		leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
 		rightPanelStyle = panelStyleBlurred.Width(m.rightWidth)
 	}
@@ -429,8 +432,8 @@ func (m dashboardModel) View() string {
 	}
 	toInject := strings.Split(popUpStyle.Render(form.View()), "\n")
 
-	x_coord := int((1.0 / 2.0) * float32(m.screenWidth-form.width-2))
-	y_coord := int((1.0 / 2.0) * float32(m.screenHeight-form.heigt-2))
+	x_coord := int((1.0 / 2.0) * float32(m.screenWidth-form.Width-2))
+	y_coord := int((1.0 / 2.0) * float32(m.screenHeight-form.Height-2))
 
 	if m.state == CreateState || m.state == EditState {
 		output = overlay.Block(output, toInject, y_coord, x_coord)

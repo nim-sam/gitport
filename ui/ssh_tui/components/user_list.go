@@ -1,4 +1,4 @@
-package ui
+package components
 
 import (
 	"fmt"
@@ -7,16 +7,17 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nim-sam/gitport/internal/auth"
+	"github.com/nim-sam/gitport/ui"
 )
 
 // User List
 
 type UserListModel struct {
-	width     int
-	height    int
-	listModel list.Model
+	Width     int
+	Height    int
+	ListModel list.Model
 	users     []list.Item
-	userData  []*auth.User
+	UserData  []*auth.User
 }
 
 func (u UserListModel) Init() tea.Cmd {
@@ -34,7 +35,7 @@ func (u UserListModel) View() string {
 	// u.listModel.Styles.Title = lipgloss.NewStyle().
 	// 	Foreground(palette.accent)
 
-	u.listModel.SetShowTitle(false)
+	u.ListModel.SetShowTitle(false)
 
 	// TitleBar styles
 	// u.listModel.Styles.TitleBar = lipgloss.NewStyle().
@@ -44,11 +45,11 @@ func (u UserListModel) View() string {
 	// 	AlignHorizontal(lipgloss.Center)
 
 	// Other configs
-	u.listModel.SetShowHelp(false)
+	u.ListModel.SetShowHelp(false)
 
-	u.listModel.SetStatusBarItemName("user", "users")
+	u.ListModel.SetStatusBarItemName("user", "users")
 
-	userListModelView := u.listModel.View()
+	userListModelView := u.ListModel.View()
 
 	return userListModelView
 
@@ -82,7 +83,7 @@ func (i userItem) Description() string {
 	return fmt.Sprintf("%s %s", accessLevelDisplay, i.sshKey)
 }
 
-func newUserList(users []*auth.User) UserListModel {
+func NewUserList(users []*auth.User) UserListModel {
 
 	// Converting <users> list to list.Item list
 	var userList []list.Item
@@ -97,30 +98,30 @@ func newUserList(users []*auth.User) UserListModel {
 
 	delegate := list.NewDefaultDelegate()
 	delegate.Styles.SelectedTitle = lipgloss.NewStyle().
-		Foreground(palette.accent).
+		Foreground(ui.Palette.Accent).
 		Border(lipgloss.HiddenBorder(), false, false, false, true).
 		Padding(0, 1).
-		BorderForeground(palette.accent).
+		BorderForeground(ui.Palette.Accent).
 		Bold(true)
 	delegate.Styles.SelectedDesc = lipgloss.NewStyle().
-		Foreground(palette.accent).
+		Foreground(ui.Palette.Accent).
 		Border(lipgloss.HiddenBorder(), false, false, false, true).
 		Padding(0, 1).
-		BorderForeground(palette.accent).
+		BorderForeground(ui.Palette.Accent).
 		Italic(true)
 	delegate.Styles.NormalTitle = lipgloss.NewStyle().
-		Foreground(palette.fg).
+		Foreground(ui.Palette.Fg).
 		Border(lipgloss.HiddenBorder(), false, false, false, true).
 		Padding(0, 1)
 	delegate.Styles.NormalDesc = lipgloss.NewStyle().
-		Foreground(palette.fgMuted).
+		Foreground(ui.Palette.FgMuted).
 		Border(lipgloss.HiddenBorder(), false, false, false, true).
 		Padding(0, 1).
 		Italic(true)
 
 	return UserListModel{
 		users:     userList,
-		userData:  users,
-		listModel: list.New(userList, delegate, 60, 14),
+		UserData:  users,
+		ListModel: list.New(userList, delegate, 60, 14),
 	}
 }

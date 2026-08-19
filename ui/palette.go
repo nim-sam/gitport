@@ -2,27 +2,27 @@ package ui
 
 import "github.com/charmbracelet/lipgloss"
 
-var palette Palette
-
-type Palette struct {
-	fg             lipgloss.Color
-	fgHighlight    lipgloss.Color
-	fgMuted        lipgloss.Color
-	border         lipgloss.Color
-	accent         lipgloss.Color
-	selectedBorder lipgloss.Color
-	listSelect     lipgloss.Color
+type PaletteStruct struct {
+	Fg             lipgloss.Color
+	FgHighlight    lipgloss.Color
+	FgMuted        lipgloss.Color
+	Border         lipgloss.Color
+	Accent         lipgloss.Color
+	SelectedBorder lipgloss.Color
+	ListSelect     lipgloss.Color
 }
 
+var Palette PaletteStruct
+
 func init() {
-	palette = Palette{
-		fg:             lipgloss.Color("#545454"),
-		fgHighlight:    lipgloss.Color("#717171"),
-		fgMuted:        lipgloss.Color("#343434"),
-		border:         lipgloss.Color("#2a2a2a"),
-		selectedBorder: lipgloss.Color("#404040"),
-		accent:         lipgloss.Color("#8800ff"),
-		listSelect:     lipgloss.Color("#b690ff"),
+	Palette = PaletteStruct{
+		Fg:             lipgloss.Color("#545454"),
+		FgHighlight:    lipgloss.Color("#717171"),
+		FgMuted:        lipgloss.Color("#343434"),
+		Border:         lipgloss.Color("#2a2a2a"),
+		SelectedBorder: lipgloss.Color("#404040"),
+		Accent:         lipgloss.Color("#8800ff"),
+		ListSelect:     lipgloss.Color("#b690ff"),
 	}
-	_ = palette
+	_ = Palette
 }
