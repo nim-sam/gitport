@@ -263,7 +263,9 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case commitHistory:
 		// m.focus = leftPanel
-		m.commitHistory, _ = m.commitHistory.Update(msg)
+		if m.focus == leftPanel {
+			m.commitHistory, _ = m.commitHistory.Update(msg)
+		}
 	case serverLogs:
 		m.focus = fullPanel
 		m.serverLogs, _ = m.serverLogs.Update(msg)
