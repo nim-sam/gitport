@@ -59,26 +59,27 @@ func (u UserListModel) View() string {
 type userItem struct {
 	sshKey      string
 	name        string
+	email       string
 	accessLevel auth.AccessLevel
 }
 
 // User's list.Item implementation
 
 func (i userItem) FilterValue() string { return i.name }
-func (i userItem) Title() string       { return i.name }
+func (i userItem) Title() string       { return i.name + " <" + i.email + ">" }
 func (i userItem) Description() string {
 
 	var accessLevelDisplay string
 	switch i.accessLevel {
 	case 0:
-		accessLevelDisplay = "ReadOnly"
+		accessLevelDisplay = "(Read)"
 	case 1:
-		accessLevelDisplay = "ReadWrite"
+		accessLevelDisplay = "(Write)"
 	case 2:
-		accessLevelDisplay = "Admin"
+		accessLevelDisplay = "(Admin)"
 	}
 
-	return fmt.Sprintf("%s | %s", accessLevelDisplay, i.sshKey)
+	return fmt.Sprintf("%s %s", accessLevelDisplay, i.sshKey)
 }
 
 func newUserList(users []*auth.User) UserListModel {
@@ -89,6 +90,7 @@ func newUserList(users []*auth.User) UserListModel {
 		userList = append(userList, userItem{
 			sshKey:      user.SshKey(),
 			name:        user.Name(),
+			email:       user.Email(),
 			accessLevel: user.AccessLevel(),
 		})
 	}
@@ -98,12 +100,23 @@ func newUserList(users []*auth.User) UserListModel {
 		Foreground(palette.accent).
 		Border(lipgloss.HiddenBorder(), false, false, false, true).
 		Padding(0, 1).
-		BorderForeground(palette.accent)
+		BorderForeground(palette.accent).
+		Bold(true)
 	delegate.Styles.SelectedDesc = lipgloss.NewStyle().
 		Foreground(palette.accent).
 		Border(lipgloss.HiddenBorder(), false, false, false, true).
 		Padding(0, 1).
-		BorderForeground(palette.accent)
+		BorderForeground(palette.accent).
+		Italic(true)
+	delegate.Styles.NormalTitle = lipgloss.NewStyle().
+		Foreground(palette.fg).
+		Border(lipgloss.HiddenBorder(), false, false, false, true).
+		Padding(0, 1)
+	delegate.Styles.NormalDesc = lipgloss.NewStyle().
+		Foreground(palette.fgMuted).
+		Border(lipgloss.HiddenBorder(), false, false, false, true).
+		Padding(0, 1).
+		Italic(true)
 
 	return UserListModel{
 		users:     userList,

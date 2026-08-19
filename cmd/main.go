@@ -12,22 +12,27 @@ func main() {
 	userListTest := [...]*auth.User{
 		auth.NewUser().
 			WithName("Alice").
+			WithEmail("alice@mail.com").
 			WithSshKey("qwerqwerqwer").
 			WithAccessLevel(auth.ReadWrite),
 		auth.NewUser().
 			WithName("Bob").
+			WithEmail("bubblybob@mail.com").
 			WithSshKey("aadskljfa;lkjf").
 			WithAccessLevel(auth.ReadWrite),
 		auth.NewUser().
 			WithName("Charlie").
+			WithEmail("goodluckcharlie@gmail.com").
 			WithSshKey("pweaseletmein").
 			WithAccessLevel(auth.ReadOnly),
 		auth.NewUser().
 			WithName("Dalia").
+			WithEmail("dalia@gmail.com").
 			WithSshKey("p123123412341234").
 			WithAccessLevel(auth.ReadOnly),
 		auth.NewUser().
 			WithName("Esme").
+			WithEmail("esmerald@mail.com").
 			WithSshKey("df2q3ewr2").
 			WithAccessLevel(auth.Admin),
 	}
@@ -132,7 +137,6 @@ func main() {
 			WithLevel(logs.Info).
 			WithDate("2026/05/17 @ 16:07 UTC").
 			WithMessage("Server accepted connection from so and so user."),
-
 	}
 
 	_ = serverLogsTest
