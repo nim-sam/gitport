@@ -155,7 +155,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// CommitHistory inherits dimensions from full panel
 		m.commitHistory.heigth = m.innerHeight
-		m.commitHistory.width = m.innerWidth
+		m.commitHistory.width = m.leftWidth
 
 		// ServerLogs inherits dimensions from full panel
 		m.serverLogs.width = m.innerWidth
@@ -230,9 +230,9 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.tab != previousTab {
 		switch m.tab {
-		case userManagement:
+		case userManagement, commitHistory:
 			m.focus = leftPanel
-		case commitHistory, serverLogs:
+		case serverLogs:
 			m.focus = fullPanel
 		}
 	}
@@ -259,7 +259,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.userModificationForm.selector.UpdateSelection(msg)
 		}
 	case commitHistory:
-		m.focus = fullPanel
+		// m.focus = leftPanel
 		m.commitHistory, _ = m.commitHistory.Update(msg)
 	case serverLogs:
 		m.focus = fullPanel
@@ -299,7 +299,8 @@ func (m dashboardModel) View() string {
 	case commitHistory:
 		switch m.state {
 		default:
-			fullPanelContent = m.commitHistory.View()
+			leftPanelContent = m.commitHistory.View()
+			rightPanelContent = ""
 		}
 	// Server Logs Tab
 	case serverLogs:
@@ -338,7 +339,7 @@ func (m dashboardModel) View() string {
 	// Panel styling per tab and panel focus
 
 	switch m.tab {
-	case userManagement:
+	case userManagement, commitHistory:
 		switch m.focus {
 		case leftPanel:
 			leftPanelStyle = panelStyleFocused.Width(m.leftWidth)
@@ -347,7 +348,7 @@ func (m dashboardModel) View() string {
 			leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
 			rightPanelStyle = panelStyleFocused.Width(m.rightWidth)
 		}
-	case commitHistory, serverLogs:
+	case serverLogs:
 		switch m.focus {
 		case fullPanel:
 			fullPanelStyle = panelStyleFocused.
@@ -406,7 +407,7 @@ func (m dashboardModel) View() string {
 	case userManagement:
 		screenSetup = splitScreenSetup
 	case commitHistory:
-		screenSetup = fullScreenSetup
+		screenSetup = splitScreenSetup
 	case serverLogs:
 		screenSetup = fullScreenSetup
 	}
