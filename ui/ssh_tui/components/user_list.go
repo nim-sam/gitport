@@ -24,35 +24,14 @@ func (u UserListModel) Init() tea.Cmd {
 	return nil
 }
 
-func (u UserListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (u UserListModel) Update(msg tea.Msg) (UserListModel, tea.Cmd) {
+	u.ListModel, _ = u.ListModel.Update(msg)
 	return u, nil
 }
 
 func (u UserListModel) View() string {
-
-	// Title styles
-	// u.listModel.Title = "Users"
-	// u.listModel.Styles.Title = lipgloss.NewStyle().
-	// 	Foreground(palette.accent)
-
-	u.ListModel.SetShowTitle(false)
-
-	// TitleBar styles
-	// u.listModel.Styles.TitleBar = lipgloss.NewStyle().
-	// 	Border(lipgloss.RoundedBorder(), false, false, true, false).
-	// 	BorderForeground(palette.border).
-	// 	Width(u.width - 2).
-	// 	AlignHorizontal(lipgloss.Center)
-
-	// Other configs
-	u.ListModel.SetShowHelp(false)
-
-	u.ListModel.SetStatusBarItemName("user", "users")
-
 	userListModelView := u.ListModel.View()
-
 	return userListModelView
-
 }
 
 // User Item definition
@@ -130,9 +109,16 @@ func NewUserList(users []*auth.User) UserListModel {
 		Italic(true).
 		Faint(true)
 
-	return UserListModel{
+	ul := UserListModel{
 		users:     userList,
 		UserData:  users,
 		ListModel: list.New(userList, delegate, 60, 14),
 	}
+
+	ul.ListModel.SetShowHelp(false)
+	ul.ListModel.SetStatusBarItemName("user", "users")
+	ul.ListModel.SetFilteringEnabled(true)
+	ul.ListModel.SetShowTitle(false)
+
+	return ul
 }
