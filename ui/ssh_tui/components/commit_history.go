@@ -26,7 +26,7 @@ func (i CommitItem) Description() string {
 
 type CommitHistoryModel struct {
 	selectedCommit int
-	listModel      list.Model
+	ListModel      list.Model
 	commits        []*git.Commit
 	Width          int
 	Height         int
@@ -34,8 +34,8 @@ type CommitHistoryModel struct {
 
 func (c CommitHistoryModel) Init() tea.Cmd { return nil }
 func (c CommitHistoryModel) Update(msg tea.Msg) (CommitHistoryModel, tea.Cmd) {
-	c.listModel.SetSize(c.Width, c.Height)
-	c.listModel, _ = c.listModel.Update(msg)
+	c.ListModel.SetSize(c.Width, c.Height)
+	c.ListModel, _ = c.ListModel.Update(msg)
 	return c, nil
 }
 func (c CommitHistoryModel) View() string {
@@ -44,7 +44,7 @@ func (c CommitHistoryModel) View() string {
 		Width(c.Width)
 		// Padding(0, 1)
 
-	return container.Render(c.listModel.View())
+	return container.Render(c.ListModel.View())
 }
 
 func NewCommitHistory(commits []*git.Commit) CommitHistoryModel {
@@ -102,6 +102,6 @@ func NewCommitHistory(commits []*git.Commit) CommitHistoryModel {
 
 	return CommitHistoryModel{
 		commits:   commits,
-		listModel: model,
+		ListModel: model,
 	}
 }
