@@ -1,6 +1,7 @@
 package ssh_tui
 
 import (
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -25,6 +26,7 @@ const (
 	CreateState
 	EditState
 	DeleteState
+	FilterState
 )
 
 // Dashboard Focus states
@@ -212,13 +214,21 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.state = DefaultState
 			m.userCreationForm.ClearInputs()
 			m.focus = leftPanel
-		// Swtiching focus between left and right panels
+		// Switching focus between left and right panels
 		case "enter":
 			if m.focus == leftPanel && m.state == DefaultState {
 				m.focus = rightPanel
 			} else if m.focus == rightPanel && m.state == DefaultState {
 				m.focus = leftPanel
 			}
+			// // Locking navigation between panels when in filter state
+			// case "/":
+			// 	switch m.state {
+			// 	case DefaultState:
+			// 		m.state = FilterState
+			// 	case FilterState:
+			// 		m.state = DefaultState
+			// 	}
 		}
 	}
 
@@ -246,9 +256,9 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case userManagement:
 		switch m.state {
 		// Broswing users
-		case DefaultState:
+		case DefaultState, FilterState:
 			if m.focus == leftPanel {
-				m.userList.ListModel, _ = m.userList.ListModel.Update(msg)
+				m.userList, _ = m.userList.Update(msg)
 			}
 		// Creating user
 		case CreateState:
@@ -271,6 +281,14 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.serverLogs, _ = m.serverLogs.Update(msg)
 	}
 
+	// Handling navigation during filter states from list models
+	if m.userList.ListModel.FilterState() == list.Filtering ||
+		m.commitHistory.ListModel.FilterState() == list.Filtering {
+		m.state = FilterState
+	} else {
+		m.state = DefaultState
+	}
+
 	m.help, _ = m.help.Update(msg)
 	m.userCreationForm, _ = m.userCreationForm.Update(msg)
 	m.userModificationForm, _ = m.userModificationForm.Update(msg)
@@ -290,13 +308,7 @@ func (m dashboardModel) View() string {
 	// User Management Tab
 	case userManagement:
 		switch m.state {
-		case DefaultState:
-			leftPanelContent = m.userList.View()
-			rightPanelContent = ""
-		case CreateState:
-			leftPanelContent = m.userList.View()
-			rightPanelContent = ""
-		case EditState:
+		default:
 			leftPanelContent = m.userList.View()
 			rightPanelContent = ""
 		}
