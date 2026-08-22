@@ -282,10 +282,13 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Handling navigation during filter states from list models
-	if m.userList.ListModel.FilterState() == list.Filtering ||
-		m.commitHistory.ListModel.FilterState() == list.Filtering {
+	if (m.userList.ListModel.FilterState() == list.Filtering ||
+		m.commitHistory.ListModel.FilterState() == list.Filtering) &&
+		m.state == DefaultState {
 		m.state = FilterState
-	} else {
+	} else if (m.userList.ListModel.FilterState() == list.FilterApplied ||
+		m.commitHistory.ListModel.FilterState() == list.FilterApplied) &&
+		m.state == FilterState {
 		m.state = DefaultState
 	}
 
