@@ -221,14 +221,6 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else if m.focus == rightPanel && m.state == DefaultState {
 				m.focus = leftPanel
 			}
-			// // Locking navigation between panels when in filter state
-			// case "/":
-			// 	switch m.state {
-			// 	case DefaultState:
-			// 		m.state = FilterState
-			// 	case FilterState:
-			// 		m.state = DefaultState
-			// 	}
 		}
 	}
 
@@ -282,12 +274,14 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Handling navigation during filter states from list models
-	if m.userList.ListModel.FilterState() == list.Filtering ||
-		m.commitHistory.ListModel.FilterState() == list.Filtering {
+	if (m.userList.ListModel.FilterState() == list.Filtering ||
+		m.commitHistory.ListModel.FilterState() == list.Filtering) &&
+		m.state == DefaultState {
 		m.state = FilterState
-	} else {
+	}  else if (m.userList.ListModel.FilterState() == list.FilterApplied ||
+		m.commitHistory.ListModel.FilterState() == list.FilterApplied) {
 		m.state = DefaultState
-	}
+	} 
 
 	m.help, _ = m.help.Update(msg)
 	m.userCreationForm, _ = m.userCreationForm.Update(msg)
