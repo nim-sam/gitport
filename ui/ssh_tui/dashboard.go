@@ -278,10 +278,10 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.commitHistory.ListModel.FilterState() == list.Filtering) &&
 		m.state == DefaultState {
 		m.state = FilterState
-	}  else if (m.userList.ListModel.FilterState() == list.FilterApplied ||
-		m.commitHistory.ListModel.FilterState() == list.FilterApplied) {
+	} else if m.userList.ListModel.FilterState() == list.FilterApplied ||
+		m.commitHistory.ListModel.FilterState() == list.FilterApplied {
 		m.state = DefaultState
-	} 
+	}
 
 	m.help, _ = m.help.Update(msg)
 	m.userCreationForm, _ = m.userCreationForm.Update(msg)
