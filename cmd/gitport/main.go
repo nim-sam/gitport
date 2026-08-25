@@ -9,32 +9,37 @@ import (
 )
 
 func main() {
-	userListTest := [...]*auth.User{
-		auth.NewUser().
-			WithName("Alice").
-			WithEmail("alice@mail.com").
-			WithSshKey("qwerqwerqwer").
-			WithAccessLevel(auth.ReadWrite),
-		auth.NewUser().
-			WithName("Bob").
-			WithEmail("bubblybob@mail.com").
-			WithSshKey("aadskljfa;lkjf").
-			WithAccessLevel(auth.ReadWrite),
-		auth.NewUser().
-			WithName("Charlie").
-			WithEmail("goodluckcharlie@gmail.com").
-			WithSshKey("pweaseletmein").
-			WithAccessLevel(auth.ReadOnly),
-		auth.NewUser().
-			WithName("Dalia").
-			WithEmail("dalia@gmail.com").
-			WithSshKey("p123123412341234").
-			WithAccessLevel(auth.ReadOnly),
-		auth.NewUser().
-			WithName("Esme").
-			WithEmail("esmerald@mail.com").
-			WithSshKey("df2q3ewr2").
-			WithAccessLevel(auth.Admin),
+	userListTest := [...]auth.User{
+		auth.User{
+			Name: "Alice",
+			Email: "alice@mail.com",
+			SshKey: "qwerqwerqwer",
+			AccessLevel: auth.ReadWrite,
+		},
+		auth.User{
+			Name: "Bob",
+			Email: "bubblybob@mail.com",
+			SshKey: "aadskljfa;lkjf",
+			AccessLevel: auth.ReadWrite,
+		},
+		auth.User{
+			Name: "Charlie",
+			Email: "goodluckcharlie@gmail.com",
+			SshKey: "pweaseletmein",
+			AccessLevel: auth.ReadOnly,
+		},
+		auth.User{
+			Name: "Dalia",
+			Email: "dalia@gmail.com",
+			SshKey: "p123123412341234",
+			AccessLevel: auth.ReadOnly,
+		},
+		auth.User{
+			Name: "Esme",
+			Email: "esmerald@mail.com",
+			SshKey: "df2q3ewr2",
+			AccessLevel: auth.Admin,
+		},
 	}
 
 	commitHistoryTest := [...]*git.Commit{

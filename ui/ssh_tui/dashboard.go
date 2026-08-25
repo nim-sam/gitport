@@ -88,7 +88,7 @@ type dashboardModel struct {
 }
 
 // Inititializes and instantiates dashboard mdoel
-func NewDashboard(users []*auth.User, commits []*git.Commit, l []*logs.Log) dashboardModel {
+func NewDashboard(users []auth.User, commits []*git.Commit, l []*logs.Log) dashboardModel {
 
 	nav := navigator.New()
 	nav.Title = "GitPort"
@@ -204,9 +204,9 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// Fetch currently selected user and populate data in pop-up
 					currentUserIndex := m.userList.ListModel.Index()
 					currentUser := m.userList.UserData[currentUserIndex]
-					m.userModificationForm.Inputs[0].SetValue(currentUser.Name())
-					m.userModificationForm.Inputs[1].SetValue(currentUser.SshKey())
-					m.userModificationForm.Selector.SetValue(int(currentUser.AccessLevel()))
+					m.userModificationForm.Inputs[0].SetValue(currentUser.Name)
+					m.userModificationForm.Inputs[1].SetValue(currentUser.SshKey)
+					m.userModificationForm.Selector.SetValue(int(currentUser.AccessLevel))
 				}
 			}
 

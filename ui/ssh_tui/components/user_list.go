@@ -17,7 +17,7 @@ type UserListModel struct {
 	Height    int
 	ListModel list.Model
 	users     []list.Item
-	UserData  []*auth.User
+	UserData  []auth.User
 }
 
 func (u UserListModel) Init() tea.Cmd {
@@ -62,16 +62,16 @@ func (i userItem) Description() string {
 	return fmt.Sprintf("%s %s", accessLevelDisplay, i.sshKey)
 }
 
-func NewUserList(users []*auth.User) UserListModel {
+func NewUserList(users []auth.User) UserListModel {
 
 	// Converting <users> list to list.Item list
 	var userList []list.Item
 	for _, user := range users {
 		userList = append(userList, userItem{
-			sshKey:      user.SshKey(),
-			name:        user.Name(),
-			email:       user.Email(),
-			accessLevel: user.AccessLevel(),
+			sshKey:      user.SshKey,
+			name:        user.Name,
+			email:       user.Email,
+			accessLevel: user.AccessLevel,
 		})
 	}
 
