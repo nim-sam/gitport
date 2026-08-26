@@ -88,7 +88,7 @@ type dashboardModel struct {
 }
 
 // Inititializes and instantiates dashboard mdoel
-func NewDashboard(users []auth.User, commits []*git.Commit, l []*logs.Log) dashboardModel {
+func NewDashboard(users []auth.User, commits []git.Commit, l []*logs.Log) dashboardModel {
 
 	nav := navigator.New()
 	nav.Title = "GitPort"

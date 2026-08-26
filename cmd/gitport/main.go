@@ -42,19 +42,21 @@ func main() {
 		},
 	}
 
-	commitHistoryTest := [...]*git.Commit{
-		git.NewCommit().
-			WithAuthor("Alice").
-			WithHash("abcdefg").
-			WithMessage("First Commit").
-			WithDate("today").
-			WithBranch("remote/master"),
-		git.NewCommit().
-			WithAuthor("Bob").
-			WithHash("1234567").
-			WithMessage("Second Commit").
-			WithDate("july 7th 2026").
-			WithBranch("remote/feature1"),
+	commitHistoryTest := [...]git.Commit{
+		git.Commit{
+			Author: "Alice",
+			Hash: "abcdefg",
+			Message: "First Commit",
+			Date: "today",
+			Branch: "remote/master",
+		},
+		git.Commit{
+			Author: "Bob",
+			Hash: "1234567",
+			Message: "Second Commit",
+			Date: "july 7th 2026",
+			Branch: "remote/feature1",
+		},
 	}
 
 	serverLogsTest := [...]*logs.Log{

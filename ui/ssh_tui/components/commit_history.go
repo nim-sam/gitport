@@ -27,7 +27,7 @@ func (i CommitItem) Description() string {
 type CommitHistoryModel struct {
 	selectedCommit int
 	ListModel      list.Model
-	commits        []*git.Commit
+	commits        []git.Commit
 	Width          int
 	Height         int
 }
@@ -47,18 +47,18 @@ func (c CommitHistoryModel) View() string {
 	return container.Render(c.ListModel.View())
 }
 
-func NewCommitHistory(commits []*git.Commit) CommitHistoryModel {
+func NewCommitHistory(commits []git.Commit) CommitHistoryModel {
 
 	// Initializing commit items
 	var commitItems []list.Item
 	for _, commit := range commits {
 		commitItems = append(commitItems,
 			CommitItem{
-				author:  commit.Author(),
-				hash:    commit.Hash(),
-				message: commit.Message(),
-				date:    commit.Date(),
-				branch:  commit.Branch(),
+				author:  commit.Author,
+				hash:    commit.Hash,
+				message: commit.Message,
+				date:    commit.Date,
+				branch:  commit.Branch,
 			},
 		)
 	}
