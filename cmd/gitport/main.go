@@ -11,139 +11,115 @@ import (
 func main() {
 	userListTest := [...]auth.User{
 		auth.User{
-			Name: "Alice",
-			Email: "alice@mail.com",
-			SshKey: "qwerqwerqwer",
+			Name:        "Alice",
+			Email:       "alice@mail.com",
+			SshKey:      "qwerqwerqwer",
 			AccessLevel: auth.ReadWrite,
 		},
 		auth.User{
-			Name: "Bob",
-			Email: "bubblybob@mail.com",
-			SshKey: "aadskljfa;lkjf",
+			Name:        "Bob",
+			Email:       "bubblybob@mail.com",
+			SshKey:      "aadskljfa;lkjf",
 			AccessLevel: auth.ReadWrite,
 		},
 		auth.User{
-			Name: "Charlie",
-			Email: "goodluckcharlie@gmail.com",
-			SshKey: "pweaseletmein",
+			Name:        "Charlie",
+			Email:       "goodluckcharlie@gmail.com",
+			SshKey:      "pweaseletmein",
 			AccessLevel: auth.ReadOnly,
 		},
 		auth.User{
-			Name: "Dalia",
-			Email: "dalia@gmail.com",
-			SshKey: "p123123412341234",
+			Name:        "Dalia",
+			Email:       "dalia@gmail.com",
+			SshKey:      "p123123412341234",
 			AccessLevel: auth.ReadOnly,
 		},
 		auth.User{
-			Name: "Esme",
-			Email: "esmerald@mail.com",
-			SshKey: "df2q3ewr2",
+			Name:        "Esme",
+			Email:       "esmerald@mail.com",
+			SshKey:      "df2q3ewr2",
 			AccessLevel: auth.Admin,
 		},
 	}
 
 	commitHistoryTest := [...]git.Commit{
 		git.Commit{
-			Author: "Alice",
-			Hash: "abcdefg",
+			Author:  "Alice",
+			Hash:    "abcdefg",
 			Message: "First Commit",
-			Date: "today",
-			Branch: "remote/master",
+			Date:    "today",
+			Branch:  "remote/master",
 		},
 		git.Commit{
-			Author: "Bob",
-			Hash: "1234567",
+			Author:  "Bob",
+			Hash:    "1234567",
 			Message: "Second Commit",
-			Date: "july 7th 2026",
-			Branch: "remote/feature1",
+			Date:    "july 7th 2026",
+			Branch:  "remote/feature1",
 		},
 	}
 
-	serverLogsTest := [...]*logs.Log{
-		logs.NewLog().
-			WithLevel(logs.Warning).
-			WithDate("2026/05/17 @ 16:00 UTC").
-			WithMessage("The server is missing so and so information. Might compromise so and so features."),
-		logs.NewLog().
-			WithLevel(logs.Error).
-			WithDate("2026/05/17 @ 16:05 UTC").
-			WithMessage("Somthing in the server failed. Whoops!"),
-		logs.NewLog().
-			WithLevel(logs.Info).
-			WithDate("2026/05/17 @ 16:07 UTC").
-			WithMessage("Server accepted connection from so and so user."),
-		logs.NewLog().
-			WithLevel(logs.Warning).
-			WithDate("2026/05/17 @ 16:00 UTC").
-			WithMessage("The server is missing so and so information. Might compromise so and so features."),
-		logs.NewLog().
-			WithLevel(logs.Error).
-			WithDate("2026/05/17 @ 16:05 UTC").
-			WithMessage("Somthing in the server failed. Whoops!"),
-		logs.NewLog().
-			WithLevel(logs.Info).
-			WithDate("2026/05/17 @ 16:07 UTC").
-			WithMessage("Server accepted connection from so and so user."),
-		logs.NewLog().
-			WithLevel(logs.Warning).
-			WithDate("2026/05/17 @ 16:00 UTC").
-			WithMessage("The server is missing so and so information. Might compromise so and so features."),
-		logs.NewLog().
-			WithLevel(logs.Error).
-			WithDate("2026/05/17 @ 16:05 UTC").
-			WithMessage("Somthing in the server failed. Whoops!"),
-		logs.NewLog().
-			WithLevel(logs.Info).
-			WithDate("2026/05/17 @ 16:07 UTC").
-			WithMessage("Server accepted connection from so and so user."),
-		logs.NewLog().
-			WithLevel(logs.Warning).
-			WithDate("2026/05/17 @ 16:00 UTC").
-			WithMessage("The server is missing so and so information. Might compromise so and so features."),
-		logs.NewLog().
-			WithLevel(logs.Error).
-			WithDate("2026/05/17 @ 16:05 UTC").
-			WithMessage("Somthing in the server failed. Whoops!"),
-		logs.NewLog().
-			WithLevel(logs.Info).
-			WithDate("2026/05/17 @ 16:07 UTC").
-			WithMessage("Server accepted connection from so and so user."),
-		logs.NewLog().
-			WithLevel(logs.Warning).
-			WithDate("2026/05/17 @ 16:00 UTC").
-			WithMessage("The server is missing so and so information. Might compromise so and so features."),
-		logs.NewLog().
-			WithLevel(logs.Error).
-			WithDate("2026/05/17 @ 16:05 UTC").
-			WithMessage("Somthing in the server failed. Whoops!"),
-		logs.NewLog().
-			WithLevel(logs.Info).
-			WithDate("2026/05/17 @ 16:07 UTC").
-			WithMessage("Server accepted connection from so and so user."),
-		logs.NewLog().
-			WithLevel(logs.Warning).
-			WithDate("2026/05/17 @ 16:00 UTC").
-			WithMessage("The server is missing so and so information. Might compromise so and so features."),
-		logs.NewLog().
-			WithLevel(logs.Error).
-			WithDate("2026/05/17 @ 16:05 UTC").
-			WithMessage("Somthing in the server failed. Whoops!"),
-		logs.NewLog().
-			WithLevel(logs.Info).
-			WithDate("2026/05/17 @ 16:07 UTC").
-			WithMessage("Server accepted connection from so and so user."),
-		logs.NewLog().
-			WithLevel(logs.Warning).
-			WithDate("2026/05/17 @ 16:00 UTC").
-			WithMessage("The server is missing so and so information. Might compromise so and so features."),
-		logs.NewLog().
-			WithLevel(logs.Error).
-			WithDate("2026/05/17 @ 16:05 UTC").
-			WithMessage("Somthing in the server failed. Whoops!"),
-		logs.NewLog().
-			WithLevel(logs.Info).
-			WithDate("2026/05/17 @ 16:07 UTC").
-			WithMessage("Server accepted connection from so and so user."),
+	serverLogsTest := [...]logs.Log{
+		logs.Log{
+			Level:   logs.Warning,
+			Date:    "2026/05/17 @ 16:00 UTC",
+			Message: "The server is missing so and so information. Might compromise so and so features.",
+		},
+		logs.Log{
+			Level:   logs.Error,
+			Date:    "2026/05/17 @ 16:05 UTC",
+			Message: "Somthing in the server failed. Whoops!",
+		},
+		logs.Log{
+			Level:   logs.Info,
+			Date:    "2026/05/17 @ 16:07 UTC",
+			Message: "Server accepted connection from so and so user.",
+		},
+		logs.Log{
+			Level:   logs.Warning,
+			Date:    "2026/05/17 @ 16:00 UTC",
+			Message: "The server is missing so and so information. Might compromise so and so features.",
+		},
+		logs.Log{
+			Level:   logs.Error,
+			Date:    "2026/05/17 @ 16:05 UTC",
+			Message: "Somthing in the server failed. Whoops!",
+		},
+		logs.Log{
+			Level:   logs.Info,
+			Date:    "2026/05/17 @ 16:07 UTC",
+			Message: "Server accepted connection from so and so user.",
+		},
+		logs.Log{
+			Level:   logs.Warning,
+			Date:    "2026/05/17 @ 16:00 UTC",
+			Message: "The server is missing so and so information. Might compromise so and so features.",
+		},
+		logs.Log{
+			Level:   logs.Error,
+			Date:    "2026/05/17 @ 16:05 UTC",
+			Message: "Somthing in the server failed. Whoops!",
+		},
+		logs.Log{
+			Level:   logs.Info,
+			Date:    "2026/05/17 @ 16:07 UTC",
+			Message: "Server accepted connection from so and so user.",
+		},
+		logs.Log{
+			Level:   logs.Warning,
+			Date:    "2026/05/17 @ 16:00 UTC",
+			Message: "The server is missing so and so information. Might compromise so and so features.",
+		},
+		logs.Log{
+			Level:   logs.Error,
+			Date:    "2026/05/17 @ 16:05 UTC",
+			Message: "Somthing in the server failed. Whoops!",
+		},
+		logs.Log{
+			Level:   logs.Info,
+			Date:    "2026/05/17 @ 16:07 UTC",
+			Message: "Server accepted connection from so and so user.",
+		},
 	}
 
 	_ = serverLogsTest

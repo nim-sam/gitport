@@ -47,7 +47,7 @@ func (s ServerLogsModel) View() string {
 	return tableContainer.Render(s.table.View())
 }
 
-func NewServerLogsModel(l []*logs.Log) ServerLogsModel {
+func NewServerLogsModel(l []logs.Log) ServerLogsModel {
 
 	cols := []table.Column{
 		{Title: "LEVEL", Width: 10},
@@ -58,7 +58,7 @@ func NewServerLogsModel(l []*logs.Log) ServerLogsModel {
 	var rows []table.Row
 	for _, log := range l {
 		var logLevel string
-		switch log.Level() {
+		switch log.Level {
 		case logs.Warning:
 			logLevel = "Warning"
 		case logs.Error:
@@ -66,7 +66,7 @@ func NewServerLogsModel(l []*logs.Log) ServerLogsModel {
 		case logs.Info:
 			logLevel = "Info"
 		}
-		rows = append(rows, []string{logLevel, log.Date(), log.Message()})
+		rows = append(rows, []string{logLevel, log.Date, log.Message})
 	}
 
 	newTable := table.New(
