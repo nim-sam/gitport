@@ -1,8 +1,6 @@
-package logs
+package model
 
 import (
-	"github.com/nim-sam/gitport/internal/config"
-	"github.com/nim-sam/gitport/pkg/repository"
 	"gorm.io/gorm"
 )
 
@@ -21,13 +19,4 @@ type Log struct {
 	Level   LogLevel
 	Date    string
 	Message string
-}
-
-// Logs Repository
-var LogRepo = repository.Repository[Log]{
-	DB: config.DB,
-}
-
-func init() {
-	LogRepo.DB.AutoMigrate(&Log{})
 }

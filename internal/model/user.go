@@ -1,8 +1,6 @@
-package auth
+package model
 
 import (
-	"github.com/nim-sam/gitport/internal/config"
-	"github.com/nim-sam/gitport/pkg/repository"
 	"gorm.io/gorm"
 )
 
@@ -22,13 +20,4 @@ type User struct {
 	Name        string
 	Email       string
 	AccessLevel AccessLevel
-}
-
-// User Repository
-var UserRepo = repository.Repository[User]{
-	DB: config.DB,
-}
-
-func init() {
-	UserRepo.DB.AutoMigrate(&User{})
 }
