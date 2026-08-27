@@ -12,7 +12,7 @@ import (
 
 type UserFormModel struct {
 	Inputs        []textinput.Model
-	selectedInput int
+	SelectedInput int
 	Selector      selector.Model
 	Width         int
 	Height        int
@@ -60,7 +60,7 @@ func (m UserFormModel) View() string {
 	blurredButton := lipgloss.NewStyle().Foreground(ui.Palette.FgMuted)
 
 	var button lipgloss.Style
-	if m.selectedInput == len(m.Inputs)+1 {
+	if m.SelectedInput == len(m.Inputs)+1 {
 		button = focusedButton
 	} else {
 		button = blurredButton
@@ -71,7 +71,7 @@ func (m UserFormModel) View() string {
 	blurredSelector := lipgloss.NewStyle().Foreground(ui.Palette.FgMuted).Italic(true)
 
 	var Selector lipgloss.Style
-	if m.selectedInput == len(m.Inputs) {
+	if m.SelectedInput == len(m.Inputs) {
 		Selector = focusedSelector
 	} else {
 		Selector = blurredSelector
@@ -114,7 +114,7 @@ func NewUserCreationFormModel() UserFormModel {
 	s.Prompt = "◇"
 
 	u := UserFormModel{
-		Inputs:    make([]textinput.Model, 2),
+		Inputs:    make([]textinput.Model, 3),
 		buttonMsg: "[ SUBMIT ]",
 		title:     "Create New User",
 		Selector:  s,
@@ -132,6 +132,10 @@ func NewUserCreationFormModel() UserFormModel {
 			// t.Width = u.width - 4
 			t.Focus()
 		case 1:
+			t.Prompt = "◇ "
+			t.CharLimit = 128
+			t.Placeholder = "Email address"
+		case 2:
 			t.Prompt = "◇ "
 			t.CharLimit = 512
 			t.Placeholder = "SSH Key"
@@ -152,7 +156,7 @@ func NewUserModificationFormModel() UserFormModel {
 	s.Prompt = "◇"
 
 	u := UserFormModel{
-		Inputs:    make([]textinput.Model, 2),
+		Inputs:    make([]textinput.Model, 3),
 		buttonMsg: "[ CONFIRM ]",
 		title:     "Edit User Information",
 		Selector:  s,
@@ -171,8 +175,12 @@ func NewUserModificationFormModel() UserFormModel {
 			t.Focus()
 		case 1:
 			t.Prompt = "◇ "
+			t.CharLimit = 128
+			t.Placeholder = "Email address"
+		case 2:
+			t.Prompt = "◇ "
 			t.CharLimit = 512
-			t.Placeholder = "SHH Key"
+			t.Placeholder = "SSH Key"
 		}
 
 		u.Inputs[i] = t
@@ -180,7 +188,6 @@ func NewUserModificationFormModel() UserFormModel {
 	}
 
 	return u
-
 }
 
 // Handles key Inputs to navigate and interact with UserFormModel's fields
@@ -191,25 +198,25 @@ func (m *UserFormModel) UpdateInputs(msg tea.Msg) tea.Cmd {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "up":
-			if m.selectedInput > 0 {
-				m.selectedInput--
+			if m.SelectedInput > 0 {
+				m.SelectedInput--
 			}
 		case "down", "enter":
-			if m.selectedInput < len(m.Inputs)+1 {
-				m.selectedInput++
+			if m.SelectedInput < len(m.Inputs)+1 {
+				m.SelectedInput++
 			}
 		}
 	}
 
 	for i := range len(m.Inputs) {
-		if i == m.selectedInput {
+		if i == m.SelectedInput {
 			m.Inputs[i].Focus()
 		} else {
 			m.Inputs[i].Blur()
 		}
 	}
 
-	if m.selectedInput == 2 {
+	if m.SelectedInput == 2 {
 		m.Selector.Focused = true
 	} else {
 		m.Selector.Focused = false
