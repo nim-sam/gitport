@@ -87,7 +87,12 @@ type dashboardModel struct {
 }
 
 // Inititializes and instantiates dashboard mdoel
-func NewDashboard(users []model.User, commits []model.Commit, l []model.Log) dashboardModel {
+func NewDashboard() dashboardModel {
+
+	// Loading records from database
+	users := repository.UserRepo.Load()
+	commits := repository.CommitRepo.Load()
+	logs := repository.LogRepo.Load()
 
 	nav := navigator.New()
 	nav.Title = "GitPort"
@@ -101,7 +106,7 @@ func NewDashboard(users []model.User, commits []model.Commit, l []model.Log) das
 
 	ch := components.NewCommitHistory(commits)
 
-	sl := components.NewServerLogsModel(l)
+	sl := components.NewServerLogsModel(logs)
 
 	h := components.NewHelp()
 
@@ -224,51 +229,87 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.focus = leftPanel
 				}
 			case CreateState:
-				if m.userCreationForm.SelectedInput == 3 {
-					// Create user and add to database
-					formInputs := m.userCreationForm.Inputs
-					name := formInputs[0].Value()
-					email := formInputs[1].Value()
-					sshKey := formInputs[2].Value()
-					accessLevel := model.AccessLevel(m.userCreationForm.Selector.SelectedItem)
-
-					newUser := model.User{
-						Name:        name,
-						Email:       email,
-						SshKey:      sshKey,
-						AccessLevel: accessLevel,
-					}
-
-					repository.UserRepo.Save(newUser)
-
-					// Return to default state
-					m.state = DefaultState
-					m.focus = leftPanel
+				if m.userCreationForm.SelectedInput != 4 {
+					break
 				}
+				// Create user and add to database
+				formInputs := m.userCreationForm.Inputs
+				name := formInputs[0].Value()
+				email := formInputs[1].Value()
+				sshKey := formInputs[2].Value()
+				accessLevel := model.AccessLevel(m.userCreationForm.Selector.SelectedItem)
+
+				newUser := model.User{
+					Name:        name,
+					Email:       email,
+					SshKey:      sshKey,
+					AccessLevel: accessLevel,
+				}
+
+				repository.UserRepo.Save(newUser)
+
+				// Reload users from database after saving, and display in user
+				// management tab
+				users := repository.UserRepo.Load()
+				m.userList.UpdateUsers(users)
+
+				// Return to default state
+				m.state = DefaultState
+				m.focus = leftPanel
 			case EditState:
-				if m.userModificationForm.SelectedInput == 3 {
-					m.state = DefaultState
-					m.focus = leftPanel
+				if m.userModificationForm.SelectedInput != 4 {
+					break
+				}
+
+				// Fetch user and update fields
+				userID := m.userList.UserData[m.userList.ListModel.Index()].ID
+				formInputs := m.userModificationForm.Inputs
+				name := formInputs[0].Value()
+				email := formInputs[1].Value()
+				sshKey := formInputs[2].Value()
+				accessLevel := model.AccessLevel(m.userModificationForm.Selector.SelectedItem)
+
+				updatedUser := model.User{
+					Name:        name,
+					Email:       email,
+					SshKey:      sshKey,
+					AccessLevel: accessLevel,
+				}
+				updatedUser.ID = userID
+
+				// Save user to databse
+				repository.UserRepo.Save(updatedUser)
+
+				// Reload users from database after saving, and display in user
+				// management tab
+				users := repository.UserRepo.Load()
+				m.userList.UpdateUsers(users)
+
+				// Return to default state
+				m.state = DefaultState
+				m.focus = leftPanel
+			}
+		case "tab":
+			switch m.state {
+			case DefaultState:
+				// Handling tab selection
+
+				previousTab := m.tab
+
+				m.navigator, _ = m.navigator.Update(msg)
+				m.tab = tabFocus(m.navigator.Index())
+
+				// Reset Focus when switching tabs
+
+				if m.tab != previousTab {
+					switch m.tab {
+					case userManagement, commitHistory:
+						m.focus = leftPanel
+					case serverLogs:
+						m.focus = fullPanel
+					}
 				}
 			}
-		}
-	}
-
-	// Handling tab selection
-
-	previousTab := m.tab
-
-	m.navigator, _ = m.navigator.Update(msg)
-	m.tab = tabFocus(m.navigator.Index())
-
-	// Reset Focus when switching tabs
-
-	if m.tab != previousTab {
-		switch m.tab {
-		case userManagement, commitHistory:
-			m.focus = leftPanel
-		case serverLogs:
-			m.focus = fullPanel
 		}
 	}
 
