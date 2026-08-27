@@ -3,44 +3,56 @@ package main
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nim-sam/gitport/internal/auth"
+	_ "github.com/nim-sam/gitport/internal/config"
 	"github.com/nim-sam/gitport/internal/git"
 	"github.com/nim-sam/gitport/internal/logs"
 	"github.com/nim-sam/gitport/ui/ssh_tui"
 )
 
 func main() {
-	userListTest := [...]auth.User{
-		auth.User{
-			Name:        "Alice",
-			Email:       "alice@mail.com",
-			SshKey:      "qwerqwerqwer",
-			AccessLevel: auth.ReadWrite,
-		},
-		auth.User{
-			Name:        "Bob",
-			Email:       "bubblybob@mail.com",
-			SshKey:      "aadskljfa;lkjf",
-			AccessLevel: auth.ReadWrite,
-		},
-		auth.User{
-			Name:        "Charlie",
-			Email:       "goodluckcharlie@gmail.com",
-			SshKey:      "pweaseletmein",
-			AccessLevel: auth.ReadOnly,
-		},
-		auth.User{
-			Name:        "Dalia",
-			Email:       "dalia@gmail.com",
-			SshKey:      "p123123412341234",
-			AccessLevel: auth.ReadOnly,
-		},
-		auth.User{
-			Name:        "Esme",
-			Email:       "esmerald@mail.com",
-			SshKey:      "df2q3ewr2",
-			AccessLevel: auth.Admin,
-		},
-	}
+	// userListTest := [...]auth.User{
+	// 	auth.User{
+	// 		Name:        "Alice",
+	// 		Email:       "alice@mail.com",
+	// 		SshKey:      "qwerqwerqwer",
+	// 		AccessLevel: auth.ReadWrite,
+	// 	},
+	// 	auth.User{
+	// 		Name:        "Bob",
+	// 		Email:       "bubblybob@mail.com",
+	// 		SshKey:      "aadskljfa;lkjf",
+	// 		AccessLevel: auth.ReadWrite,
+	// 	},
+	// 	auth.User{
+	// 		Name:        "Charlie",
+	// 		Email:       "goodluckcharlie@gmail.com",
+	// 		SshKey:      "pweaseletmein",
+	// 		AccessLevel: auth.ReadOnly,
+	// 	},
+	// 	auth.User{
+	// 		Name:        "Dalia",
+	// 		Email:       "dalia@gmail.com",
+	// 		SshKey:      "p123123412341234",
+	// 		AccessLevel: auth.ReadOnly,
+	// 	},
+	// 	auth.User{
+	// 		Name:        "Esme",
+	// 		Email:       "esmerald@mail.com",
+	// 		SshKey:      "df2q3ewr2",
+	// 		AccessLevel: auth.Admin,
+	// 	},
+	// }
+
+	// auth.UserRepo.Save(
+	// 	auth.User{
+	// 		Name:        "Nadeem",
+	// 		Email:       "Nadeem@mail.com",
+	// 		SshKey:      "Key",
+	// 		AccessLevel: 0,
+	// 	},
+	// )
+
+	userListTest := auth.UserRepo.Load()
 
 	commitHistoryTest := [...]git.Commit{
 		git.Commit{
