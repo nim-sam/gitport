@@ -1,6 +1,10 @@
 package auth
 
-import "gorm.io/gorm"
+import (
+	"github.com/nim-sam/gitport/internal/config"
+	"github.com/nim-sam/gitport/pkg/repository"
+	"gorm.io/gorm"
+)
 
 // Enum categorizing access levels into three levels : Read Only, Read & Write, Admin
 type AccessLevel int
@@ -18,4 +22,13 @@ type User struct {
 	Name        string
 	Email       string
 	AccessLevel AccessLevel
+}
+
+// User Repository
+var UserRepo = repository.Repository[User]{
+	DB: config.DB,
+}
+
+func init() {
+	UserRepo.DB.AutoMigrate(&User{})
 }
