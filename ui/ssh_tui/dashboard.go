@@ -9,6 +9,7 @@ import (
 
 	overlay "github.com/floatpane/bubble-overlay"
 	"github.com/nim-sam/gitport/internal/model"
+	"github.com/nim-sam/gitport/internal/repository"
 	"github.com/nim-sam/gitport/pkg/navigator"
 
 	"github.com/nim-sam/gitport/ui"
@@ -214,10 +215,41 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.focus = leftPanel
 		// Switching focus between left and right panels
 		case "enter":
-			if m.focus == leftPanel && m.state == DefaultState {
-				m.focus = rightPanel
-			} else if m.focus == rightPanel && m.state == DefaultState {
-				m.focus = leftPanel
+			switch m.state {
+			case DefaultState:
+				switch m.focus {
+				case leftPanel:
+					m.focus = rightPanel
+				case rightPanel:
+					m.focus = leftPanel
+				}
+			case CreateState:
+				if m.userCreationForm.SelectedInput == 3 {
+					// Create user and add to database
+					formInputs := m.userCreationForm.Inputs
+					name := formInputs[0].Value()
+					email := formInputs[1].Value()
+					sshKey := formInputs[2].Value()
+					accessLevel := model.AccessLevel(m.userCreationForm.Selector.SelectedItem)
+
+					newUser := model.User{
+						Name:        name,
+						Email:       email,
+						SshKey:      sshKey,
+						AccessLevel: accessLevel,
+					}
+
+					repository.UserRepo.Save(newUser)
+
+					// Return to default state
+					m.state = DefaultState
+					m.focus = leftPanel
+				}
+			case EditState:
+				if m.userModificationForm.SelectedInput == 3 {
+					m.state = DefaultState
+					m.focus = leftPanel
+				}
 			}
 		}
 	}
