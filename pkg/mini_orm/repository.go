@@ -13,14 +13,11 @@ type Repository[D DAO] struct {
 // the fields of the entry based on the fields of the crudModel, if not, create a new
 // entry.
 func (r Repository[D]) Save(record D) {
-	// Fetch record from databse. If record doesn't exist, create new record
-	result := r.DB.FirstOrCreate(&record, record)
+	// Creates record if record not in database. Updates record
+	// if present in the database
+	result := r.DB.Save(&record)
 	if err := result.Error; err != nil {
 		panic(err)
-	}
-	// If record exists, update its fields
-	if recordExists := result.RowsAffected == 0; recordExists {
-		r.DB.Save(&record)
 	}
 }
 
@@ -33,12 +30,6 @@ func (r Repository[D]) Load() []D {
 	if err := result.Error; err != nil {
 		panic(err)
 	}
-
-	// Cast DAO type
-	// daoRecords := make([]DAO, len(records))
-	// for i, record := range records {
-	// 	daoRecords[i] = record
-	// }
 
 	return records
 }
@@ -53,5 +44,4 @@ func (r Repository[D]) Delete(ID uint) {
 	if err := result.Error; err != nil {
 		panic(err)
 	}
-
 }
