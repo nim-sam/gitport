@@ -209,11 +209,27 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					currentUserIndex := m.userList.ListModel.Index()
 					currentUser := m.userList.UserData[currentUserIndex]
 					m.userModificationForm.Inputs[0].SetValue(currentUser.Name)
-					m.userModificationForm.Inputs[1].SetValue(currentUser.SshKey)
+					m.userModificationForm.Inputs[1].SetValue(currentUser.Email)
+					m.userModificationForm.Inputs[2].SetValue(currentUser.SshKey)
 					m.userModificationForm.Selector.SetValue(int(currentUser.AccessLevel))
 				}
 			}
+		// DELETE RESOURCE
+		case "ctrl+d":
+			switch m.tab {
+			case userManagement:
+				switch m.state {
+				case DefaultState:
+					// Fetch currently selected user and delete from database
+					currentUserIndex := m.userList.ListModel.Index()
+					currentUser := m.userList.UserData[currentUserIndex]
+					repository.UserRepo.Delete(currentUser.ID)
 
+					// Reload users
+					users := repository.UserRepo.Load()
+					m.userList.UpdateUsers(users)
+				}
+			}
 		case "esc":
 			m.state = DefaultState
 			m.userCreationForm.ClearInputs()
@@ -252,6 +268,9 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// management tab
 				users := repository.UserRepo.Load()
 				m.userList.UpdateUsers(users)
+
+				// Clear form inputs
+				m.userCreationForm.ClearInputs()
 
 				// Return to default state
 				m.state = DefaultState
