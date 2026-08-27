@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nim-sam/gitport/internal/auth"
+	"github.com/nim-sam/gitport/internal/model"
 	"github.com/nim-sam/gitport/ui"
 )
 
@@ -17,7 +17,7 @@ type UserListModel struct {
 	Height    int
 	ListModel list.Model
 	users     []list.Item
-	UserData  []auth.User
+	UserData  []model.User
 }
 
 func (u UserListModel) Init() tea.Cmd {
@@ -40,7 +40,7 @@ type userItem struct {
 	sshKey      string
 	name        string
 	email       string
-	accessLevel auth.AccessLevel
+	accessLevel model.AccessLevel
 }
 
 // User's list.Item implementation
@@ -62,7 +62,7 @@ func (i userItem) Description() string {
 	return fmt.Sprintf("%s %s", accessLevelDisplay, i.sshKey)
 }
 
-func NewUserList(users []auth.User) UserListModel {
+func NewUserList(users []model.User) UserListModel {
 
 	// Converting <users> list to list.Item list
 	var userList []list.Item

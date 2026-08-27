@@ -8,9 +8,7 @@ import (
 	"strings"
 
 	overlay "github.com/floatpane/bubble-overlay"
-	"github.com/nim-sam/gitport/internal/auth"
-	"github.com/nim-sam/gitport/internal/git"
-	"github.com/nim-sam/gitport/internal/logs"
+	"github.com/nim-sam/gitport/internal/model"
 	"github.com/nim-sam/gitport/pkg/navigator"
 
 	"github.com/nim-sam/gitport/ui"
@@ -88,7 +86,7 @@ type dashboardModel struct {
 }
 
 // Inititializes and instantiates dashboard mdoel
-func NewDashboard(users []auth.User, commits []git.Commit, l []logs.Log) dashboardModel {
+func NewDashboard(users []model.User, commits []model.Commit, l []model.Log) dashboardModel {
 
 	nav := navigator.New()
 	nav.Title = "GitPort"

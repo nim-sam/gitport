@@ -4,7 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nim-sam/gitport/internal/git"
+	"github.com/nim-sam/gitport/internal/model"
 	"github.com/nim-sam/gitport/ui"
 )
 
@@ -27,7 +27,7 @@ func (i CommitItem) Description() string {
 type CommitHistoryModel struct {
 	selectedCommit int
 	ListModel      list.Model
-	commits        []git.Commit
+	commits        []model.Commit
 	Width          int
 	Height         int
 }
@@ -47,7 +47,7 @@ func (c CommitHistoryModel) View() string {
 	return container.Render(c.ListModel.View())
 }
 
-func NewCommitHistory(commits []git.Commit) CommitHistoryModel {
+func NewCommitHistory(commits []model.Commit) CommitHistoryModel {
 
 	// Initializing commit items
 	var commitItems []list.Item

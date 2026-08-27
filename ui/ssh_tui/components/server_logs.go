@@ -4,7 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nim-sam/gitport/internal/logs"
+	"github.com/nim-sam/gitport/internal/model"
 	"github.com/nim-sam/gitport/ui"
 )
 
@@ -47,7 +47,7 @@ func (s ServerLogsModel) View() string {
 	return tableContainer.Render(s.table.View())
 }
 
-func NewServerLogsModel(l []logs.Log) ServerLogsModel {
+func NewServerLogsModel(l []model.Log) ServerLogsModel {
 
 	cols := []table.Column{
 		{Title: "LEVEL", Width: 10},
@@ -59,11 +59,11 @@ func NewServerLogsModel(l []logs.Log) ServerLogsModel {
 	for _, log := range l {
 		var logLevel string
 		switch log.Level {
-		case logs.Warning:
+		case model.Warning:
 			logLevel = "Warning"
-		case logs.Error:
+		case model.Error:
 			logLevel = "Error"
-		case logs.Info:
+		case model.Info:
 			logLevel = "Info"
 		}
 		rows = append(rows, []string{logLevel, log.Date, log.Message})
