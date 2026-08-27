@@ -216,7 +216,7 @@ func (m *UserFormModel) UpdateInputs(msg tea.Msg) tea.Cmd {
 		}
 	}
 
-	if m.SelectedInput == 2 {
+	if m.SelectedInput == 3 {
 		m.Selector.Focused = true
 	} else {
 		m.Selector.Focused = false
