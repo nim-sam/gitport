@@ -16,7 +16,6 @@ type UserListModel struct {
 	Width     int
 	Height    int
 	ListModel list.Model
-	users     []list.Item
 	UserData  []model.User
 }
 
@@ -62,7 +61,10 @@ func (i userItem) Description() string {
 	return fmt.Sprintf("%s %s", accessLevelDisplay, i.sshKey)
 }
 
-func NewUserList(users []model.User) UserListModel {
+// Updates UserListModel's users and sets ListModel's items
+func (m *UserListModel) UpdateUsers(users []model.User) {
+
+	m.UserData = users
 
 	// Converting <users> list to list.Item list
 	var userList []list.Item
@@ -74,7 +76,12 @@ func NewUserList(users []model.User) UserListModel {
 			accessLevel: user.AccessLevel,
 		})
 	}
+	m.ListModel.SetItems(userList)
+}
 
+func NewUserList(users []model.User) UserListModel {
+
+	// Defining delegate
 	delegate := list.NewDefaultDelegate()
 	delegate.Styles.SelectedTitle = lipgloss.NewStyle().
 		Foreground(ui.Palette.Accent).
@@ -109,16 +116,20 @@ func NewUserList(users []model.User) UserListModel {
 		Italic(true).
 		Faint(true)
 
+	// Creating list model with configs
+	listModel := list.New(make([]list.Item, 0), delegate, 60, 14)
+	listModel.SetShowHelp(false)
+	listModel.SetStatusBarItemName("user", "users")
+	listModel.SetFilteringEnabled(true)
+	listModel.SetShowTitle(false)
+
 	ul := UserListModel{
-		users:     userList,
 		UserData:  users,
-		ListModel: list.New(userList, delegate, 60, 14),
+		ListModel: listModel,
 	}
 
-	ul.ListModel.SetShowHelp(false)
-	ul.ListModel.SetStatusBarItemName("user", "users")
-	ul.ListModel.SetFilteringEnabled(true)
-	ul.ListModel.SetShowTitle(false)
+	// Injecting user data into list model
+	ul.UpdateUsers(users)
 
 	return ul
 }
