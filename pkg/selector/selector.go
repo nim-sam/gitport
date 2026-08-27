@@ -9,7 +9,7 @@ import (
 type Model struct {
 	values             []string
 	length             int
-	selectedItem       int
+	SelectedItem       int
 	lenghtLongestValue int
 	Styles             Styles
 	Focused            bool
@@ -27,7 +27,7 @@ func (m Model) Init() tea.Cmd {
 }
 
 // Model Update() interface method
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
@@ -39,11 +39,11 @@ func (m *Model) UpdateSelection(msg tea.Msg) {
 		switch msg.String() {
 		case "left":
 			if m.Focused {
-				m.selectedItem = (m.selectedItem + m.length - 1) % m.length
+				m.SelectedItem = (m.SelectedItem + m.length - 1) % m.length
 			}
 		case "right":
 			if m.Focused {
-				m.selectedItem = (m.selectedItem + 1) % m.length
+				m.SelectedItem = (m.SelectedItem + 1) % m.length
 			}
 		}
 	}
@@ -61,7 +61,7 @@ func (m Model) View() string {
 	return lipgloss.JoinHorizontal(lipgloss.Left,
 		m.Styles.Prompt.Render(m.Prompt),
 		" ",
-		arrowStyle.Render("< ")+m.Styles.Carrousel.Render(m.values[m.selectedItem])+arrowStyle.Render(" >"),
+		arrowStyle.Render("< ")+m.Styles.Carrousel.Render(m.values[m.SelectedItem])+arrowStyle.Render(" >"),
 	)
 }
 
@@ -89,6 +89,6 @@ func (m *Model) SetValue(index int) error {
 	if index < 0 || index > m.length-1 {
 		return errors.New("Out of bounds")
 	}
-	m.selectedItem = index
+	m.SelectedItem = index
 	return nil
 }
