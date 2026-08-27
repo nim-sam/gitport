@@ -1,4 +1,4 @@
-package repository
+package mini_orm
 
 // Data Access Object interface. Empty interface. Declared for code readability.
 // Any struct implements DAO by default, therefore allowing for any struct that

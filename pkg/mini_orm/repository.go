@@ -1,4 +1,4 @@
-package repository
+package mini_orm
 
 import (
 	"gorm.io/gorm"
