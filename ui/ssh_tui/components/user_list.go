@@ -77,6 +77,13 @@ func (m *UserListModel) UpdateUsers(users []model.User) {
 		})
 	}
 	m.ListModel.SetItems(userList)
+
+	// Hide status bar if list is empty
+	if len(m.UserData) == 0 {
+		m.ListModel.SetShowStatusBar(false)
+	} else {
+		m.ListModel.SetShowStatusBar(true)
+	}
 }
 
 func NewUserList(users []model.User) UserListModel {
