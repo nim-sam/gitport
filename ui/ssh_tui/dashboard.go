@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	overlay "github.com/floatpane/bubble-overlay"
-	"github.com/nim-sam/gitport/internal/model"
 	"github.com/nim-sam/gitport/internal/repository"
 	"github.com/nim-sam/gitport/pkg/dialog"
 	"github.com/nim-sam/gitport/pkg/navigator"
@@ -220,6 +219,8 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case DefaultState:
 					m.state = EditState
 
+					m.userModificationForm.SelectedInput = 0
+
 					// Fetch currently selected user and populate data in pop-up
 					currentUserIndex := m.userList.ListModel.Index()
 					currentUser := m.userList.UserData[currentUserIndex]
@@ -262,73 +263,6 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case rightPanel:
 					m.focus = leftPanel
 				}
-			case CreateState:
-				if m.userCreationForm.SelectedInput != 4 {
-					break
-				}
-				// Create user and add to database
-				formInputs := m.userCreationForm.Inputs
-				name := formInputs[0].Value()
-				email := formInputs[1].Value()
-				sshKey := formInputs[2].Value()
-				accessLevel := model.AccessLevel(m.userCreationForm.Selector.SelectedItem)
-
-				newUser := model.User{
-					Name:        name,
-					Email:       email,
-					SshKey:      sshKey,
-					AccessLevel: accessLevel,
-				}
-
-				repository.UserRepo.Save(newUser)
-
-				// Reload users from database after saving, and display in user
-				// management tab
-				users := repository.UserRepo.Load()
-				m.userList.UpdateUsers(users)
-
-				// Clear form inputs and reset selection
-				m.userCreationForm.ClearInputs()
-				m.userCreationForm.SelectedInput = 0
-
-				// Return to default state
-				m.state = DefaultState
-				m.focus = leftPanel
-			case EditState:
-				if m.userModificationForm.SelectedInput != 4 {
-					break
-				}
-
-				// Fetch user and update fields
-				userID := m.userList.UserData[m.userList.ListModel.Index()].ID
-				formInputs := m.userModificationForm.Inputs
-				name := formInputs[0].Value()
-				email := formInputs[1].Value()
-				sshKey := formInputs[2].Value()
-				accessLevel := model.AccessLevel(m.userModificationForm.Selector.SelectedItem)
-
-				updatedUser := model.User{
-					Name:        name,
-					Email:       email,
-					SshKey:      sshKey,
-					AccessLevel: accessLevel,
-				}
-				updatedUser.ID = userID
-
-				// Save user to databse
-				repository.UserRepo.Save(updatedUser)
-
-				// Reload users from database after saving, and display in user
-				// management tab
-				users := repository.UserRepo.Load()
-				m.userList.UpdateUsers(users)
-
-				// Reset selected input
-				m.userModificationForm.SelectedInput = 0
-
-				// Return to default state
-				m.state = DefaultState
-				m.focus = leftPanel
 			}
 		case "tab":
 			switch m.state {
@@ -352,6 +286,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+	// Handles user deletion dialog
 	case dialog.SelectionMsg:
 		if msg.Confirm && m.state == DeleteState {
 			// Fetches selected user, deletes user from data base,
@@ -365,6 +300,32 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.state = DefaultState
 			m.focus = leftPanel
 		} else {
+			m.state = DefaultState
+			m.focus = leftPanel
+		}
+	// Handles user creation/modification forms
+	case components.UserFormConfirmationMsg:
+		switch m.state {
+		case CreateState:
+			// Save user and reload users from database
+			newUser := msg.GetUser()
+			repository.UserRepo.Save(newUser)
+			m.userList.UpdateUsers(repository.UserRepo.Load())
+
+			// Return to default state
+			m.state = DefaultState
+			m.focus = leftPanel
+		case EditState:
+			// Updates fields of currently selected user and reload
+			// users from database
+			currentUser := m.userList.GetSelectedUser()
+			userID := currentUser.ID
+			updatedUser := msg.GetUser()
+			updatedUser.ID = userID
+			repository.UserRepo.Save(updatedUser)
+			m.userList.UpdateUsers(repository.UserRepo.Load())
+
+			// Return to default state
 			m.state = DefaultState
 			m.focus = leftPanel
 		}
@@ -383,13 +344,11 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Creating user
 		case CreateState:
 			m.focus = popUpPanel
-			m.userCreationForm.UpdateInputs(msg)
-			m.userCreationForm.Selector.UpdateSelection(msg)
+			m.userCreationForm, cmd = m.userCreationForm.Update(msg)
 		// Editing user
 		case EditState:
 			m.focus = popUpPanel
-			m.userModificationForm.UpdateInputs(msg)
-			m.userModificationForm.Selector.UpdateSelection(msg)
+			m.userModificationForm, cmd = m.userModificationForm.Update(msg)
 		// Deleting user dialog
 		case DeleteState:
 			m.focus = popUpPanel
@@ -417,8 +376,6 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	m.help, _ = m.help.Update(msg)
-	m.userCreationForm, _ = m.userCreationForm.Update(msg)
-	m.userModificationForm, _ = m.userModificationForm.Update(msg)
 
 	return m, cmd
 }

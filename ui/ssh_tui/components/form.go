@@ -6,10 +6,21 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nim-sam/gitport/internal/model"
 	"github.com/nim-sam/gitport/pkg/selector"
 	"github.com/nim-sam/gitport/ui"
 )
 
+// User form confirmation msg
+type UserFormConfirmationMsg struct {
+	user model.User
+}
+
+func (u UserFormConfirmationMsg) GetUser() model.User {
+	return u.user
+}
+
+// User form model struct
 type UserFormModel struct {
 	Inputs        []textinput.Model
 	SelectedInput int
@@ -25,10 +36,62 @@ func (m UserFormModel) Init() tea.Cmd {
 }
 
 func (m UserFormModel) Update(msg tea.Msg) (UserFormModel, tea.Cmd) {
+
+	var cmds tea.BatchMsg
+
+	// Adjust length of text inputs
 	for i, _ := range m.Inputs {
 		m.Inputs[i].Width = m.Width - 18
 	}
-	return m, nil
+
+	switch msg := msg.(type) {
+	// Handle keystrokes
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "tab":
+			m.SelectedInput = (m.SelectedInput + 1) % (len(m.Inputs) + 2)
+		case "enter":
+			// Pass UserFormConfirmationMsg if "enter" is pressed
+			// while the confirm/submit button is selected
+			if m.confirmButtonSelected() {
+
+				user := model.User{
+					Name:        m.Inputs[0].Value(),
+					Email:       m.Inputs[1].Value(),
+					SshKey:      m.Inputs[2].Value(),
+					AccessLevel: model.AccessLevel(m.Selector.SelectedItem),
+				}
+
+				cmd := func() tea.Msg { return UserFormConfirmationMsg{user: user} }
+				cmds = append(cmds, cmd)
+			}
+		}
+	}
+
+	// Update form field selection
+	for i := range len(m.Inputs) {
+		if i == m.SelectedInput {
+			m.Inputs[i].Focus()
+		} else {
+			m.Inputs[i].Blur()
+		}
+	}
+
+	if m.SelectedInput == 3 {
+		m.Selector.Focused = true
+	} else {
+		m.Selector.Focused = false
+	}
+
+	// Update form text field values
+	for i := range m.Inputs {
+		m.Inputs[i], _ = m.Inputs[i].Update(msg)
+	}
+
+	// Update selector selection
+	m.Selector.UpdateSelection(msg)
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m UserFormModel) View() string {
@@ -60,7 +123,7 @@ func (m UserFormModel) View() string {
 	blurredButton := lipgloss.NewStyle().Foreground(ui.Palette.FgMuted)
 
 	var button lipgloss.Style
-	if m.SelectedInput == len(m.Inputs)+1 {
+	if m.confirmButtonSelected() {
 		button = focusedButton
 	} else {
 		button = blurredButton
@@ -105,6 +168,11 @@ func (m UserFormModel) View() string {
 		),
 		buttonContainer.Render(button.Render(m.buttonMsg)),
 	)
+}
+
+// Returns true if the form's confirm/submit button is selected
+func (m UserFormModel) confirmButtonSelected() bool {
+	return m.SelectedInput == len(m.Inputs)+1
 }
 
 func NewUserCreationFormModel() UserFormModel {
@@ -188,47 +256,6 @@ func NewUserModificationFormModel() UserFormModel {
 	}
 
 	return u
-}
-
-// Handles key Inputs to navigate and interact with UserFormModel's fields
-func (m *UserFormModel) UpdateInputs(msg tea.Msg) tea.Cmd {
-	cmds := make([]tea.Cmd, len(m.Inputs))
-
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "up":
-			if m.SelectedInput > 0 {
-				m.SelectedInput--
-			}
-		case "down", "enter":
-			if m.SelectedInput < len(m.Inputs)+1 {
-				m.SelectedInput++
-			}
-		}
-	}
-
-	for i := range len(m.Inputs) {
-		if i == m.SelectedInput {
-			m.Inputs[i].Focus()
-		} else {
-			m.Inputs[i].Blur()
-		}
-	}
-
-	if m.SelectedInput == 3 {
-		m.Selector.Focused = true
-	} else {
-		m.Selector.Focused = false
-	}
-
-	for i := range m.Inputs {
-		m.Inputs[i], cmds[i] = m.Inputs[i].Update(msg)
-	}
-
-	m.Selector.UpdateSelection(msg)
-
-	return tea.Batch(cmds...)
 }
 
 func (m *UserFormModel) ClearInputs() {
