@@ -89,7 +89,7 @@ func (m UserFormModel) Update(msg tea.Msg) (UserFormModel, tea.Cmd) {
 	}
 
 	// Update selector selection
-	m.Selector.UpdateSelection(msg)
+	m.Selector, _ = m.Selector.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }

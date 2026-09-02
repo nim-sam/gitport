@@ -2,7 +2,8 @@ package selector
 
 import (
 	"errors"
-	"github.com/charmbracelet/bubbletea"
+
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -28,25 +29,20 @@ func (m Model) Init() tea.Cmd {
 
 // Model Update() interface method
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	return m, nil
-}
-
-// Helper method updating the the Selector's state based on
-// key messages, cycling through its stored values
-func (m *Model) UpdateSelection(msg tea.Msg) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "left":
+		case "left", "h":
 			if m.Focused {
 				m.SelectedItem = (m.SelectedItem + m.length - 1) % m.length
 			}
-		case "right":
+		case "right", "l":
 			if m.Focused {
 				m.SelectedItem = (m.SelectedItem + 1) % m.length
 			}
 		}
 	}
+	return m, nil
 }
 
 // Model View() interface method
