@@ -140,3 +140,8 @@ func NewUserList(users []model.User) UserListModel {
 
 	return ul
 }
+
+// Gets currently selected user
+func (m UserListModel) GetSelectedUser() model.User {
+	return m.UserData[m.ListModel.Index()]
+}
