@@ -1,6 +1,8 @@
 package ssh_tui
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -10,6 +12,7 @@ import (
 	overlay "github.com/floatpane/bubble-overlay"
 	"github.com/nim-sam/gitport/internal/model"
 	"github.com/nim-sam/gitport/internal/repository"
+	"github.com/nim-sam/gitport/pkg/dialog"
 	"github.com/nim-sam/gitport/pkg/navigator"
 
 	"github.com/nim-sam/gitport/ui"
@@ -70,6 +73,9 @@ type dashboardModel struct {
 	// Navigator
 	navigator navigator.Model
 
+	// Dialog windows
+	confirmUserDeletionDialog dialog.Model
+
 	// Form for new user creation
 	userCreationForm components.UserFormModel
 
@@ -98,6 +104,8 @@ func NewDashboard() dashboardModel {
 	nav.Title = "GitPort"
 	nav.SetTabs("User Management", "Commit History", "Server Logs")
 
+	dia := dialog.New()
+
 	u := components.NewUserList(users)
 
 	ucf := components.NewUserCreationFormModel()
@@ -112,13 +120,14 @@ func NewDashboard() dashboardModel {
 
 	// Return new dashboard model
 	return dashboardModel{
-		navigator:            nav,
-		userList:             u,
-		commitHistory:        ch,
-		serverLogs:           sl,
-		userCreationForm:     ucf,
-		userModificationForm: umf,
-		help:                 h,
+		navigator:                 nav,
+		userList:                  u,
+		commitHistory:             ch,
+		serverLogs:                sl,
+		userCreationForm:          ucf,
+		userModificationForm:      umf,
+		confirmUserDeletionDialog: dia,
+		help:                      h,
 	}
 }
 
@@ -129,6 +138,8 @@ func (m dashboardModel) Init() tea.Cmd {
 }
 
 func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
+	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 
@@ -161,6 +172,10 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// UserModificatoinForm inherits dimensions from right panel
 		m.userModificationForm.Width = m.rightWidth
 		m.userModificationForm.Height = int(float32(m.innerHeight) * 2 / 3)
+
+		// Dialog inherits dimensions from right panel
+		m.confirmUserDeletionDialog.Width = m.rightWidth
+		m.confirmUserDeletionDialog.Height = int(float32(m.innerHeight) * 2 / 3)
 
 		// CommitHistory inherits dimensions from full panel
 		m.commitHistory.Height = m.innerHeight
@@ -220,14 +235,17 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case userManagement:
 				switch m.state {
 				case DefaultState:
-					// Fetch currently selected user and delete from database
-					currentUserIndex := m.userList.ListModel.Index()
-					currentUser := m.userList.UserData[currentUserIndex]
-					repository.UserRepo.Delete(currentUser.ID)
 
-					// Reload users
-					users := repository.UserRepo.Load()
-					m.userList.UpdateUsers(users)
+					m.state = DeleteState
+					user := m.userList.GetSelectedUser()
+
+					// Set dialog data catered for user deletion
+					m.confirmUserDeletionDialog.ResetSelection()
+					m.confirmUserDeletionDialog.Title = "Delete User"
+					m.confirmUserDeletionDialog.Prompt = fmt.Sprintf("Are you sure you want to delete %s?", user.Name)
+					m.confirmUserDeletionDialog.ConfirmMsg = "[ Confirm ]"
+					m.confirmUserDeletionDialog.CancelMsg = "[ Cancel ]"
+
 				}
 			}
 		case "esc":
@@ -269,8 +287,9 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				users := repository.UserRepo.Load()
 				m.userList.UpdateUsers(users)
 
-				// Clear form inputs
+				// Clear form inputs and reset selection
 				m.userCreationForm.ClearInputs()
+				m.userCreationForm.SelectedInput = 0
 
 				// Return to default state
 				m.state = DefaultState
@@ -304,14 +323,17 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				users := repository.UserRepo.Load()
 				m.userList.UpdateUsers(users)
 
+				// Reset selected input
+				m.userModificationForm.SelectedInput = 0
+
 				// Return to default state
 				m.state = DefaultState
 				m.focus = leftPanel
 			}
 		case "tab":
 			switch m.state {
+			// Swtich tabs when in default state
 			case DefaultState:
-				// Handling tab selection
 
 				previousTab := m.tab
 
@@ -329,6 +351,22 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
+		}
+	case dialog.SelectionMsg:
+		if msg.Confirm && m.state == DeleteState {
+			// Fetches selected user, deletes user from data base,
+			// updates user list model
+			user := m.userList.GetSelectedUser()
+			repository.UserRepo.Delete(user.ID)
+			usersUpdated := repository.UserRepo.Load()
+			m.userList.UpdateUsers(usersUpdated)
+
+			// Return to default state
+			m.state = DefaultState
+			m.focus = leftPanel
+		} else {
+			m.state = DefaultState
+			m.focus = leftPanel
 		}
 	}
 
@@ -352,6 +390,11 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.focus = popUpPanel
 			m.userModificationForm.UpdateInputs(msg)
 			m.userModificationForm.Selector.UpdateSelection(msg)
+		// Deleting user dialog
+		case DeleteState:
+			m.focus = popUpPanel
+			m.confirmUserDeletionDialog, cmd = m.confirmUserDeletionDialog.Update(msg)
+
 		}
 	case commitHistory:
 		// m.focus = leftPanel
@@ -377,7 +420,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.userCreationForm, _ = m.userCreationForm.Update(msg)
 	m.userModificationForm, _ = m.userModificationForm.Update(msg)
 
-	return m, nil
+	return m, cmd
 }
 
 func (m dashboardModel) View() string {
@@ -483,6 +526,23 @@ func (m dashboardModel) View() string {
 		Width(m.innerWidth).
 		Padding(1, 0, 0, 0)
 
+	// Confirm User Deletion dialog window styling
+	m.confirmUserDeletionDialog.Style.Title = lipgloss.NewStyle().
+		Foreground(ui.Palette.FgHighlight).
+		Border(lipgloss.NormalBorder(), false, false, true, false).
+		BorderForeground(ui.Palette.Border).
+		Bold(true)
+	m.confirmUserDeletionDialog.Style.Prompt = lipgloss.NewStyle().
+		Foreground(ui.Palette.Fg)
+	m.confirmUserDeletionDialog.Style.ConfirmMsgNormal = lipgloss.NewStyle().
+		Foreground(ui.Palette.FgMuted)
+	m.confirmUserDeletionDialog.Style.ConfirmMsgSelected = lipgloss.NewStyle().
+		Foreground(ui.Palette.Accent)
+	m.confirmUserDeletionDialog.Style.CancelMsgNormal = lipgloss.NewStyle().
+		Foreground(ui.Palette.FgMuted)
+	m.confirmUserDeletionDialog.Style.CancelMsgSelected = lipgloss.NewStyle().
+		Foreground(ui.Palette.Accent)
+
 	// Terminal window-sized application container, that will be containing
 	// the left and right panels, centered vertically and horizontally
 	dashBoardStyle := lipgloss.NewStyle().
@@ -521,19 +581,30 @@ func (m dashboardModel) View() string {
 		))
 
 	// Injecting Pop-up window
-	form := m.userCreationForm
+	var popUpContent string
+	var popUpWidth int
+	var popUpHeight int
+
 	switch m.state {
 	case CreateState:
-		form = m.userCreationForm
+		popUpContent = m.userCreationForm.View()
+		popUpWidth = m.userCreationForm.Width
+		popUpHeight = m.userCreationForm.Height
 	case EditState:
-		form = m.userModificationForm
+		popUpContent = m.userModificationForm.View()
+		popUpWidth = m.userModificationForm.Width
+		popUpHeight = m.userModificationForm.Height
+	case DeleteState:
+		popUpContent = m.confirmUserDeletionDialog.View()
+		popUpWidth = m.confirmUserDeletionDialog.Width
+		popUpHeight = m.confirmUserDeletionDialog.Height
 	}
-	toInject := strings.Split(popUpStyle.Render(form.View()), "\n")
+	toInject := strings.Split(popUpStyle.Render(popUpContent), "\n")
 
-	x_coord := int((1.0 / 2.0) * float32(m.screenWidth-form.Width-2))
-	y_coord := int((1.0 / 2.0) * float32(m.screenHeight-form.Height-2))
+	x_coord := int((1.0 / 2.0) * float32(m.screenWidth-popUpWidth-2))
+	y_coord := int((1.0 / 2.0) * float32(m.screenHeight-popUpHeight-2))
 
-	if m.state == CreateState || m.state == EditState {
+	if m.state == CreateState || m.state == EditState || m.state == DeleteState {
 		output = overlay.Block(output, toInject, y_coord, x_coord)
 	}
 
