@@ -41,7 +41,7 @@ func (m UserFormModel) Update(msg tea.Msg) (UserFormModel, tea.Cmd) {
 
 	// Adjust length of text inputs
 	for i, _ := range m.Inputs {
-		m.Inputs[i].Width = m.Width - 18
+		m.Inputs[i].Width = m.Width - 26
 	}
 
 	switch msg := msg.(type) {
@@ -107,6 +107,12 @@ func (m UserFormModel) View() string {
 		Border(lipgloss.NormalBorder(), false, false, true, false).
 		BorderForeground(ui.Palette.Border)
 
+	// Styling text input prompts
+	promptStyle := lipgloss.NewStyle().
+		Foreground(ui.Palette.Fg).
+		Bold(true).
+		Width(15)
+
 	// Styling text input models
 	for _, model := range m.Inputs {
 
@@ -119,7 +125,7 @@ func (m UserFormModel) View() string {
 	}
 
 	// Styling submit button
-	focusedButton := lipgloss.NewStyle().Foreground(ui.Palette.FgHighlight).Bold(true)
+	focusedButton := lipgloss.NewStyle().Foreground(ui.Palette.Accent)
 	blurredButton := lipgloss.NewStyle().Foreground(ui.Palette.FgMuted)
 
 	var button lipgloss.Style
@@ -153,16 +159,27 @@ func (m UserFormModel) View() string {
 	// Composing the form
 	titleBar := lipgloss.NewStyle().Width(m.Width).AlignHorizontal(lipgloss.Center)
 	composition := lipgloss.NewStyle().Width(m.Width-2).Height(m.Height-5).Padding(0, 1).AlignVertical(lipgloss.Center).AlignHorizontal(lipgloss.Center)
-	inputsContainer := lipgloss.NewStyle().Width(m.Width-12).Height(3).Padding(0, 1)
+	inputsContainer := lipgloss.NewStyle().Width(m.Width-8-promptStyle.GetWidth()).Height(3).Padding(0, 1)
 	buttonContainer := lipgloss.NewStyle().Width(m.Width).Height(3).Align(lipgloss.Center, lipgloss.Center)
 
 	return lipgloss.JoinVertical(lipgloss.Top,
 		titleBar.Render(titleStyle.Render(m.title)),
 		composition.Render(
-			inputsContainer.Render(
-				lipgloss.JoinVertical(lipgloss.Top,
-					strings.Join(formFieldsView, "\n"),
-					m.Selector.View(),
+			lipgloss.JoinHorizontal(lipgloss.Left,
+				promptStyle.Render(
+					lipgloss.JoinVertical(
+						lipgloss.Top,
+						"Username",
+						"Email",
+						"Ssh-key",
+						"Access",
+					),
+				),
+				inputsContainer.Render(
+					lipgloss.JoinVertical(lipgloss.Top,
+						strings.Join(formFieldsView, "\n"),
+						m.Selector.View(),
+					),
 				),
 			),
 		),
@@ -192,8 +209,6 @@ func NewUserCreationFormModel() UserFormModel {
 
 	s := selector.New("ReadOnly", "ReadWrite", "Admin")
 
-	s.Prompt = "◇"
-
 	u := UserFormModel{
 		Inputs:    make([]textinput.Model, 3),
 		buttonMsg: "[ SUBMIT ]",
@@ -207,19 +222,19 @@ func NewUserCreationFormModel() UserFormModel {
 
 		switch i {
 		case 0:
-			t.Prompt = "◇ "
+			t.Prompt = ""
 			t.CharLimit = 32
-			t.Placeholder = "Username"
+			t.Placeholder = "Max. 32 char"
 			// t.Width = u.width - 4
 			t.Focus()
 		case 1:
-			t.Prompt = "◇ "
+			t.Prompt = ""
 			t.CharLimit = 128
-			t.Placeholder = "Email address"
+			t.Placeholder = "Max. 128 char"
 		case 2:
-			t.Prompt = "◇ "
+			t.Prompt = ""
 			t.CharLimit = 512
-			t.Placeholder = "SSH Key"
+			t.Placeholder = "Paste with Ctrl+v"
 		}
 
 		u.Inputs[i] = t
@@ -234,7 +249,7 @@ func NewUserModificationFormModel() UserFormModel {
 
 	s := selector.New("ReadOnly", "ReadWrite", "Admin")
 
-	s.Prompt = "◇"
+	s.Prompt = ""
 
 	u := UserFormModel{
 		Inputs:    make([]textinput.Model, 3),
@@ -249,23 +264,22 @@ func NewUserModificationFormModel() UserFormModel {
 
 		switch i {
 		case 0:
-			t.Prompt = "◇ "
+			t.Prompt = ""
 			t.CharLimit = 32
 			t.Placeholder = "Username"
 			// t.Width = u.width - 4
 			t.Focus()
 		case 1:
-			t.Prompt = "◇ "
+			t.Prompt = ""
 			t.CharLimit = 128
 			t.Placeholder = "Email address"
 		case 2:
-			t.Prompt = "◇ "
+			t.Prompt = ""
 			t.CharLimit = 512
 			t.Placeholder = "SSH Key"
 		}
 
 		u.Inputs[i] = t
-
 	}
 
 	return u
