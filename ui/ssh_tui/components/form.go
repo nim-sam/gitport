@@ -170,6 +170,14 @@ func (m UserFormModel) View() string {
 	)
 }
 
+// Populates input fields from user data
+func (m *UserFormModel) SetUserFields(u model.User) {
+	m.Inputs[0].SetValue(u.Name)
+	m.Inputs[1].SetValue(u.Email)
+	m.Inputs[2].SetValue(u.SshKey)
+	m.Selector.SetValue(int(u.AccessLevel))
+}
+
 // Returns true if the form's confirm/submit button is selected
 func (m UserFormModel) confirmButtonSelected() bool {
 	return m.SelectedInput == len(m.Inputs)+1

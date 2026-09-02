@@ -218,16 +218,11 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.userModificationForm.ClearInputs()
 				case DefaultState:
 					m.state = EditState
-
 					m.userModificationForm.SelectedInput = 0
 
 					// Fetch currently selected user and populate data in pop-up
-					currentUserIndex := m.userList.ListModel.Index()
-					currentUser := m.userList.UserData[currentUserIndex]
-					m.userModificationForm.Inputs[0].SetValue(currentUser.Name)
-					m.userModificationForm.Inputs[1].SetValue(currentUser.Email)
-					m.userModificationForm.Inputs[2].SetValue(currentUser.SshKey)
-					m.userModificationForm.Selector.SetValue(int(currentUser.AccessLevel))
+					currentUser := m.userList.GetSelectedUser()
+					m.userModificationForm.SetUserFields(currentUser)
 				}
 			}
 		// DELETE RESOURCE
@@ -268,14 +263,11 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.state {
 			// Swtich tabs when in default state
 			case DefaultState:
-
 				previousTab := m.tab
-
 				m.navigator, _ = m.navigator.Update(msg)
 				m.tab = tabFocus(m.navigator.Index())
 
 				// Reset Focus when switching tabs
-
 				if m.tab != previousTab {
 					switch m.tab {
 					case userManagement, commitHistory:
