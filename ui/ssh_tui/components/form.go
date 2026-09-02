@@ -23,7 +23,7 @@ func (u UserFormConfirmationMsg) GetUser() model.User {
 // User form model struct
 type UserFormModel struct {
 	Inputs        []textinput.Model
-	SelectedInput int
+	selectedInput int
 	Selector      selector.Model
 	Width         int
 	Height        int
@@ -49,7 +49,7 @@ func (m UserFormModel) Update(msg tea.Msg) (UserFormModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
-			m.SelectedInput = (m.SelectedInput + 1) % (len(m.Inputs) + 2)
+			m.selectedInput = (m.selectedInput + 1) % (len(m.Inputs) + 2)
 		case "enter":
 			// Pass UserFormConfirmationMsg if "enter" is pressed
 			// while the confirm/submit button is selected
@@ -70,14 +70,14 @@ func (m UserFormModel) Update(msg tea.Msg) (UserFormModel, tea.Cmd) {
 
 	// Update form field selection
 	for i := range len(m.Inputs) {
-		if i == m.SelectedInput {
+		if i == m.selectedInput {
 			m.Inputs[i].Focus()
 		} else {
 			m.Inputs[i].Blur()
 		}
 	}
 
-	if m.SelectedInput == 3 {
+	if m.selectedInput == 3 {
 		m.Selector.Focused = true
 	} else {
 		m.Selector.Focused = false
@@ -134,7 +134,7 @@ func (m UserFormModel) View() string {
 	blurredSelector := lipgloss.NewStyle().Foreground(ui.Palette.FgMuted).Italic(true)
 
 	var Selector lipgloss.Style
-	if m.SelectedInput == len(m.Inputs) {
+	if m.selectedInput == len(m.Inputs) {
 		Selector = focusedSelector
 	} else {
 		Selector = blurredSelector
@@ -180,7 +180,12 @@ func (m *UserFormModel) SetUserFields(u model.User) {
 
 // Returns true if the form's confirm/submit button is selected
 func (m UserFormModel) confirmButtonSelected() bool {
-	return m.SelectedInput == len(m.Inputs)+1
+	return m.selectedInput == len(m.Inputs)+1
+}
+
+// Resets selection to first field of the form
+func (m *UserFormModel) ResetSelection() {
+	m.selectedInput = 0
 }
 
 func NewUserCreationFormModel() UserFormModel {

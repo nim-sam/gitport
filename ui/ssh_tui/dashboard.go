@@ -218,7 +218,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.userModificationForm.ClearInputs()
 				case DefaultState:
 					m.state = EditState
-					m.userModificationForm.SelectedInput = 0
+					m.userModificationForm.ResetSelection()
 
 					// Fetch currently selected user and populate data in pop-up
 					currentUser := m.userList.GetSelectedUser()
@@ -303,6 +303,10 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			newUser := msg.GetUser()
 			repository.UserRepo.Save(newUser)
 			m.userList.UpdateUsers(repository.UserRepo.Load())
+
+			// Clear inupts, reset selection
+			m.userCreationForm.ClearInputs()
+			m.userCreationForm.ResetSelection()
 
 			// Return to default state
 			m.state = DefaultState
