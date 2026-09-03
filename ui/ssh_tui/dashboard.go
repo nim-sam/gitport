@@ -11,6 +11,7 @@ import (
 
 	overlay "github.com/floatpane/bubble-overlay"
 	"github.com/nim-sam/gitport/internal/repository"
+	"github.com/nim-sam/gitport/internal/server"
 	"github.com/nim-sam/gitport/pkg/dialog"
 	"github.com/nim-sam/gitport/pkg/navigator"
 
@@ -92,11 +93,11 @@ type dashboardModel struct {
 }
 
 // Inititializes and instantiates dashboard mdoel
-func NewDashboard() dashboardModel {
+func NewDashboard(server server.Server) dashboardModel {
 
 	// Loading records from database
 	users := repository.UserRepo.Load()
-	commits := repository.CommitRepo.Load()
+	commits := server.LoadCommits(30)
 	logs := repository.LogRepo.Load()
 
 	nav := navigator.New()
