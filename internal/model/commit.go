@@ -1,6 +1,7 @@
 package model
 
 import (
+	_ "github.com/charmbracelet/wish/git"
 	"gorm.io/gorm"
 )
 
@@ -11,5 +12,4 @@ type Commit struct {
 	Hash    string
 	Message string
 	Date    string
-	Branch  string
 }
