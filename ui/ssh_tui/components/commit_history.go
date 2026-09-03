@@ -13,7 +13,6 @@ type CommitItem struct {
 	hash    string
 	message string
 	date    string
-	branch  string
 }
 
 func (i CommitItem) FilterValue() string { return i.hash }
@@ -21,7 +20,7 @@ func (i CommitItem) Title() string {
 	return "[" + i.hash + "] " + i.message
 }
 func (i CommitItem) Description() string {
-	return i.author + " @ " + i.date + " (" + i.branch + ")"
+	return i.author + " @ " + i.date
 }
 
 type CommitHistoryModel struct {
@@ -58,7 +57,6 @@ func NewCommitHistory(commits []model.Commit) CommitHistoryModel {
 				hash:    commit.Hash,
 				message: commit.Message,
 				date:    commit.Date,
-				branch:  commit.Branch,
 			},
 		)
 	}
