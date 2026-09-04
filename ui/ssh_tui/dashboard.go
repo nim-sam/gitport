@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -72,8 +71,8 @@ type dashboardModel struct {
 	leftWidth  int
 	rightWidth int
 
-	// Multi-purpose viewport
-	viewport viewport.Model
+	// Git diff CommitViewport
+	CommitViewport components.CommitViewport
 
 	// Navigator
 	navigator navigator.Model
@@ -123,11 +122,11 @@ func NewDashboard(server server.Server) dashboardModel {
 
 	h := components.NewHelp()
 
-	v := viewport.New(0, 0)
+	v := components.NewCommitViewport()
 
 	// Return new dashboard model
 	return dashboardModel{
-		viewport:                  v,
+		CommitViewport:            v,
 		navigator:                 nav,
 		userList:                  u,
 		commitHistory:             ch,
@@ -165,9 +164,9 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.leftWidth = int(float32(m.innerWidth) * 0.50)
 		m.rightWidth = m.innerWidth - m.leftWidth - 2
 
-		// Viewport inherits dimensions from right panel
-		m.viewport.Height = m.innerHeight
-		m.viewport.Width = m.rightWidth
+		// CommitViewport inherits dimensions from right panel
+		m.CommitViewport.Height(m.innerHeight)
+		m.CommitViewport.Width(m.rightWidth)
 
 		// Navigator inherits width from inner width
 		m.navigator.Width = m.innerWidth
@@ -367,22 +366,22 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case commitHistory:
 		if m.focus == leftPanel {
 			m.commitHistory, _ = m.commitHistory.Update(msg)
-		} else if m.focus == rightPanel {
-			m.viewport, _ = m.viewport.Update(msg)
 		}
+		m.CommitViewport, _ = m.CommitViewport.Update(msg)
+
 	case serverLogs:
 		m.focus = fullPanel
 		m.serverLogs, _ = m.serverLogs.Update(msg)
 	}
 
-	// Setting viewport content based on tab selection
+	// Setting CommitViewport content based on tab selection
 	switch m.tab {
 	case commitHistory:
 		commit := m.commitHistory.GetCurrentCommit()
 		diff := config.GitportServer.GetCommitDiff(commit.Hash)
-		m.viewport.SetContent(diff)
+		m.CommitViewport.SetContent(diff)
 	default:
-		m.viewport.SetContent("")
+		m.CommitViewport.SetContent("")
 	}
 
 	// Handling navigation during filter states from list models
@@ -414,14 +413,14 @@ func (m dashboardModel) View() string {
 		switch m.state {
 		default:
 			leftPanelContent = m.userList.View()
-			rightPanelContent = m.viewport.View()
+			rightPanelContent = m.CommitViewport.View()
 		}
 	// Commit History Tab
 	case commitHistory:
 		switch m.state {
 		default:
 			leftPanelContent = m.commitHistory.View()
-			rightPanelContent = m.viewport.View()
+			rightPanelContent = m.CommitViewport.View()
 		}
 	// Server Logs Tab
 	case serverLogs:
