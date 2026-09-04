@@ -54,7 +54,7 @@ func NewCommitHistory(commits []model.Commit) CommitHistoryModel {
 		commitItems = append(commitItems,
 			CommitItem{
 				author:  commit.Author,
-				hash:    commit.Hash,
+				hash:    commit.Hash[:6],
 				message: commit.Message,
 				date:    commit.Date,
 			},
@@ -102,4 +102,10 @@ func NewCommitHistory(commits []model.Commit) CommitHistoryModel {
 		commits:   commits,
 		ListModel: model,
 	}
+}
+
+// Returns currenty selected commit
+func (m CommitHistoryModel) GetCurrentCommit() model.Commit {
+	index := m.ListModel.Index()
+	return m.commits[index]
 }
