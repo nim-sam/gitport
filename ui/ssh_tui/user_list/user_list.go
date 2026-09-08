@@ -1,8 +1,6 @@
-package components
+package userlist
 
 import (
-	"fmt"
-
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -12,57 +10,29 @@ import (
 
 // User List
 
-type UserListModel struct {
+type Model struct {
 	Width     int
 	Height    int
 	ListModel list.Model
 	UserData  []model.User
 }
 
-func (u UserListModel) Init() tea.Cmd {
+func (u Model) Init() tea.Cmd {
 	return nil
 }
 
-func (u UserListModel) Update(msg tea.Msg) (UserListModel, tea.Cmd) {
+func (u Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	u.ListModel, _ = u.ListModel.Update(msg)
 	return u, nil
 }
 
-func (u UserListModel) View() string {
-	userListModelView := u.ListModel.View()
-	return userListModelView
+func (u Model) View() string {
+	ModelView := u.ListModel.View()
+	return ModelView
 }
 
-// User Item definition
-
-type userItem struct {
-	sshKey      string
-	name        string
-	email       string
-	accessLevel model.AccessLevel
-}
-
-// User's list.Item implementation
-
-func (i userItem) FilterValue() string { return i.name }
-func (i userItem) Title() string       { return i.name + " <" + i.email + ">" }
-func (i userItem) Description() string {
-
-	var accessLevelDisplay string
-	switch i.accessLevel {
-	case 0:
-		accessLevelDisplay = "(Read)"
-	case 1:
-		accessLevelDisplay = "(Write)"
-	case 2:
-		accessLevelDisplay = "(Admin)"
-	}
-
-	return fmt.Sprintf("%s %s", accessLevelDisplay, i.sshKey)
-}
-
-// Updates UserListModel's users and sets ListModel's items
-func (m *UserListModel) UpdateUsers(users []model.User) {
+// Updates Model's users and sets ListModel's items
+func (m *Model) UpdateUsers(users []model.User) {
 
 	m.UserData = users
 
@@ -86,7 +56,7 @@ func (m *UserListModel) UpdateUsers(users []model.User) {
 	}
 }
 
-func NewUserList(users []model.User) UserListModel {
+func New(users []model.User) Model {
 
 	// Defining delegate
 	delegate := list.NewDefaultDelegate()
@@ -130,7 +100,7 @@ func NewUserList(users []model.User) UserListModel {
 	listModel.SetFilteringEnabled(true)
 	listModel.SetShowTitle(false)
 
-	ul := UserListModel{
+	ul := Model{
 		UserData:  users,
 		ListModel: listModel,
 	}
@@ -142,6 +112,6 @@ func NewUserList(users []model.User) UserListModel {
 }
 
 // Gets currently selected user
-func (m UserListModel) GetSelectedUser() model.User {
+func (m Model) GetSelectedUser() model.User {
 	return m.UserData[m.ListModel.Index()]
 }

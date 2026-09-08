@@ -1,4 +1,4 @@
-package components
+package commitviewport
 
 import (
 	"github.com/charmbracelet/bubbles/viewport"
@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nim-sam/gitport/internal/config"
 	"github.com/nim-sam/gitport/ui"
+	commithistory "github.com/nim-sam/gitport/ui/ssh_tui/commit_history"
 )
 
 /*
@@ -16,17 +17,17 @@ import (
  * the dashboard code from lipgloss styling
  */
 
-// Custom viewport wrapper to visualize git diffs
-type CommitViewport struct {
+// Viewport wrapper to visualize git diffs
+type Model struct {
 	viewport viewport.Model
 	width    int
 	height   int
 	focused  bool
 }
 
-func (m CommitViewport) Init() tea.Cmd { return nil }
+func (m Model) Init() tea.Cmd { return nil }
 
-func (m CommitViewport) Update(msg tea.Msg) (CommitViewport, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	// Set dimensions
 	m.viewport.Height = m.height
@@ -37,7 +38,7 @@ func (m CommitViewport) Update(msg tea.Msg) (CommitViewport, tea.Cmd) {
 	// Recieves CommitSelectionMsg from commit history model and sets
 	// viewport content with commit diff based on the commit contained
 	// in the message
-	case CommitSelectionMsg:
+	case commithistory.CommitSelectionMsg:
 		commit := msg.GetCommit()
 		diff := config.GitportServer.GetCommitDiff(commit.Hash)
 		m.SetContent(diff)
@@ -51,14 +52,14 @@ func (m CommitViewport) Update(msg tea.Msg) (CommitViewport, tea.Cmd) {
 	return m, nil
 }
 
-func (m CommitViewport) View() string { return m.viewport.View() }
+func (m Model) View() string { return m.viewport.View() }
 
 // Width and height setters
-func (m *CommitViewport) Width(w int) *CommitViewport  { m.width = w; return m }
-func (m *CommitViewport) Height(h int) *CommitViewport { m.height = h; return m }
+func (m *Model) Width(w int) *Model  { m.width = w; return m }
+func (m *Model) Height(h int) *Model { m.height = h; return m }
 
 // Styles git diff string and sets viewport's content
-func (m *CommitViewport) SetContent(diff string) {
+func (m *Model) SetContent(diff string) {
 
 	textStyle := lipgloss.NewStyle().
 		Foreground(ui.Palette.Fg)
@@ -67,11 +68,11 @@ func (m *CommitViewport) SetContent(diff string) {
 }
 
 // Sets m.focused value
-func (m *CommitViewport) SetFocused(value bool) { m.focused = value }
+func (m *Model) SetFocused(value bool) { m.focused = value }
 
 // Create new commit viewport
-func NewCommitViewport() CommitViewport {
-	return CommitViewport{
+func New() Model {
+	return Model{
 		viewport: viewport.New(0, 0),
 		height:   0,
 		width:    0,

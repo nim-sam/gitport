@@ -1,4 +1,4 @@
-package components
+package form
 
 import (
 	"strings"
@@ -11,17 +11,8 @@ import (
 	"github.com/nim-sam/gitport/ui"
 )
 
-// User form confirmation msg
-type UserFormConfirmationMsg struct {
-	user model.User
-}
-
-func (u UserFormConfirmationMsg) GetUser() model.User {
-	return u.user
-}
-
 // User form model struct
-type UserFormModel struct {
+type Model struct {
 	Inputs        []textinput.Model
 	selectedInput int
 	Selector      selector.Model
@@ -31,11 +22,11 @@ type UserFormModel struct {
 	title         string
 }
 
-func (m UserFormModel) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-func (m UserFormModel) Update(msg tea.Msg) (UserFormModel, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	var cmds tea.BatchMsg
 
@@ -94,7 +85,7 @@ func (m UserFormModel) Update(msg tea.Msg) (UserFormModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m UserFormModel) View() string {
+func (m Model) View() string {
 
 	var formFieldsView []string
 
@@ -188,7 +179,7 @@ func (m UserFormModel) View() string {
 }
 
 // Populates input fields from user data
-func (m *UserFormModel) SetUserFields(u model.User) {
+func (m *Model) SetUserFields(u model.User) {
 	m.Inputs[0].SetValue(u.Name)
 	m.Inputs[1].SetValue(u.Email)
 	m.Inputs[2].SetValue(u.SshKey)
@@ -196,20 +187,20 @@ func (m *UserFormModel) SetUserFields(u model.User) {
 }
 
 // Returns true if the form's confirm/submit button is selected
-func (m UserFormModel) confirmButtonSelected() bool {
+func (m Model) confirmButtonSelected() bool {
 	return m.selectedInput == len(m.Inputs)+1
 }
 
 // Resets selection to first field of the form
-func (m *UserFormModel) ResetSelection() {
+func (m *Model) ResetSelection() {
 	m.selectedInput = 0
 }
 
-func NewUserCreationFormModel() UserFormModel {
+func NewUserCreationFormModel() Model {
 
 	s := selector.New("ReadOnly", "ReadWrite", "Admin")
 
-	u := UserFormModel{
+	u := Model{
 		Inputs:    make([]textinput.Model, 3),
 		buttonMsg: "[ SUBMIT ]",
 		title:     "Create New User",
@@ -245,13 +236,13 @@ func NewUserCreationFormModel() UserFormModel {
 
 }
 
-func NewUserModificationFormModel() UserFormModel {
+func NewUserModificationFormModel() Model {
 
 	s := selector.New("ReadOnly", "ReadWrite", "Admin")
 
 	s.Prompt = ""
 
-	u := UserFormModel{
+	u := Model{
 		Inputs:    make([]textinput.Model, 3),
 		buttonMsg: "[ CONFIRM ]",
 		title:     "Edit User Information",
@@ -285,7 +276,7 @@ func NewUserModificationFormModel() UserFormModel {
 	return u
 }
 
-func (m *UserFormModel) ClearInputs() {
+func (m *Model) ClearInputs() {
 
 	for i := range m.Inputs {
 		m.Inputs[i].SetValue("")

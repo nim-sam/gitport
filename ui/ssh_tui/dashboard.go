@@ -16,7 +16,12 @@ import (
 	"github.com/nim-sam/gitport/pkg/navigator"
 
 	"github.com/nim-sam/gitport/ui"
-	"github.com/nim-sam/gitport/ui/ssh_tui/components"
+	commithistory "github.com/nim-sam/gitport/ui/ssh_tui/commit_history"
+	commitviewport "github.com/nim-sam/gitport/ui/ssh_tui/commit_viewport"
+	"github.com/nim-sam/gitport/ui/ssh_tui/form"
+	"github.com/nim-sam/gitport/ui/ssh_tui/help"
+	serverlogs "github.com/nim-sam/gitport/ui/ssh_tui/server_logs"
+	userlist "github.com/nim-sam/gitport/ui/ssh_tui/user_list"
 )
 
 // Dashboard states
@@ -55,7 +60,7 @@ const (
 type dashboardModel struct {
 
 	// UserList-related specs
-	userList components.UserListModel
+	userList userlist.Model
 
 	// Dashboard-related specs
 	screenWidth  int
@@ -71,7 +76,7 @@ type dashboardModel struct {
 	rightWidth int
 
 	// Git diff commitViewport
-	commitViewport components.CommitViewport
+	commitViewport commitviewport.Model
 
 	// Navigator
 	navigator navigator.Model
@@ -80,19 +85,19 @@ type dashboardModel struct {
 	confirmUserDeletionDialog dialog.Model
 
 	// Form for new user creation
-	userCreationForm components.UserFormModel
+	userCreationForm form.Model
 
 	// Form for user information modification
-	userModificationForm components.UserFormModel
+	userModificationForm form.Model
 
 	// Commit History
-	commitHistory components.CommitHistoryModel
+	commitHistory commithistory.Model
 
 	// Server Logs
-	serverLogs components.ServerLogsModel
+	serverLogs serverlogs.Model
 
 	// Help
-	help components.HelpModel
+	help help.Model
 }
 
 // Inititializes and instantiates dashboard mdoel
@@ -109,19 +114,19 @@ func NewDashboard(server server.Server) dashboardModel {
 
 	dia := dialog.New()
 
-	u := components.NewUserList(users)
+	u := userlist.New(users)
 
-	ucf := components.NewUserCreationFormModel()
+	ucf := form.NewUserCreationFormModel()
 
-	umf := components.NewUserModificationFormModel()
+	umf := form.NewUserModificationFormModel()
 
-	ch := components.NewCommitHistory(commits)
+	ch := commithistory.New(commits)
 
-	sl := components.NewServerLogsModel(logs)
+	sl := serverlogs.New(logs)
 
-	h := components.NewHelp()
+	h := help.New()
 
-	v := components.NewCommitViewport()
+	v := commitviewport.New()
 
 	// Return new dashboard model
 	return dashboardModel{
@@ -307,7 +312,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.focus = leftPanel
 		}
 	// Handles user creation/modification forms
-	case components.UserFormConfirmationMsg:
+	case form.UserFormConfirmationMsg:
 		switch m.state {
 		case CreateState:
 			// Save user and reload users from database

@@ -1,4 +1,4 @@
-package components
+package commithistory
 
 import (
 	"github.com/charmbracelet/bubbles/list"
@@ -16,24 +16,8 @@ import (
  * update its content according to the currently selected commit item.
  */
 
-// CommitItem implements list.Item interface
-type CommitItem struct {
-	author  string
-	hash    string
-	message string
-	date    string
-}
-
-func (i CommitItem) FilterValue() string { return i.hash }
-func (i CommitItem) Title() string {
-	return "[" + i.hash + "] " + i.message
-}
-func (i CommitItem) Description() string {
-	return i.author + " @ " + i.date
-}
-
 // Commit History Model
-type CommitHistoryModel struct {
+type Model struct {
 	selectedCommit int
 	ListModel      list.Model
 	commits        []model.Commit
@@ -42,21 +26,16 @@ type CommitHistoryModel struct {
 	focused        bool
 }
 
-// Commit Selection Message
-type CommitSelectionMsg struct {
-	commit model.Commit
-}
-
-func (c CommitHistoryModel) Init() tea.Cmd {
+func (c Model) Init() tea.Cmd {
 	// Sends currently selected commit instance through a CommitSelectionMsg upon
 	// model initialization
-	return createCommitSelectionMsg(
+	return newCommitSelectionMsg(
 		c.GetCurrentCommit(),
 	)
 
 }
 
-func (c CommitHistoryModel) Update(msg tea.Msg) (CommitHistoryModel, tea.Cmd) {
+func (c Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 
@@ -68,14 +47,14 @@ func (c CommitHistoryModel) Update(msg tea.Msg) (CommitHistoryModel, tea.Cmd) {
 
 		// Send currently selected commit instance through a CommitSelectionMsg upon
 		// updating the list model
-		cmd = createCommitSelectionMsg(
+		cmd = newCommitSelectionMsg(
 			c.GetCurrentCommit(),
 		)
 	}
 
 	return c, cmd
 }
-func (c CommitHistoryModel) View() string {
+func (c Model) View() string {
 
 	container := lipgloss.NewStyle().
 		Width(c.Width)
@@ -83,7 +62,7 @@ func (c CommitHistoryModel) View() string {
 	return container.Render(c.ListModel.View())
 }
 
-func NewCommitHistory(commits []model.Commit) CommitHistoryModel {
+func New(commits []model.Commit) Model {
 
 	// Initializing commit items
 	var commitItems []list.Item
@@ -141,33 +120,19 @@ func NewCommitHistory(commits []model.Commit) CommitHistoryModel {
 	model.SetShowTitle(false)
 	model.SetShowStatusBar(false)
 
-	return CommitHistoryModel{
+	return Model{
 		commits:   commits,
 		ListModel: model,
 	}
 }
 
 // Sets m.focused value
-func (m *CommitHistoryModel) SetFocused(value bool) {
+func (m *Model) SetFocused(value bool) {
 	m.focused = value
 }
 
 // Returns currenty selected commit
-func (m CommitHistoryModel) GetCurrentCommit() model.Commit {
+func (m Model) GetCurrentCommit() model.Commit {
 	index := m.ListModel.Index()
 	return m.commits[index]
-}
-
-// CommitSelectionMsg commit getter
-func (msg CommitSelectionMsg) GetCommit() model.Commit {
-	return msg.commit
-}
-
-// Create CommitSelectionMsg containing currently selected commit
-func createCommitSelectionMsg(commit model.Commit) tea.Cmd {
-	return func() tea.Msg {
-		return CommitSelectionMsg{
-			commit: commit,
-		}
-	}
 }

@@ -1,4 +1,4 @@
-package components
+package serverlogs
 
 import (
 	"github.com/charmbracelet/bubbles/table"
@@ -8,14 +8,14 @@ import (
 	"github.com/nim-sam/gitport/ui"
 )
 
-type ServerLogsModel struct {
+type Model struct {
 	table  table.Model
 	Width  int
 	Height int
 }
 
-func (s ServerLogsModel) Init() tea.Cmd { return nil }
-func (s ServerLogsModel) Update(msg tea.Msg) (ServerLogsModel, tea.Cmd) {
+func (s Model) Init() tea.Cmd { return nil }
+func (s Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	// Updating column widths
 	c := s.table.Columns()
@@ -30,7 +30,7 @@ func (s ServerLogsModel) Update(msg tea.Msg) (ServerLogsModel, tea.Cmd) {
 	s.table.SetHeight(s.Height - 2)
 	return s, nil
 }
-func (s ServerLogsModel) View() string {
+func (s Model) View() string {
 
 	s.table.SetStyles(table.Styles{
 		Selected: lipgloss.NewStyle().
@@ -47,7 +47,7 @@ func (s ServerLogsModel) View() string {
 	return tableContainer.Render(s.table.View())
 }
 
-func NewServerLogsModel(l []model.Log) ServerLogsModel {
+func New(l []model.Log) Model {
 
 	cols := []table.Column{
 		{Title: "LEVEL", Width: 10},
@@ -75,7 +75,7 @@ func NewServerLogsModel(l []model.Log) ServerLogsModel {
 		table.WithFocused(true),
 	)
 
-	return ServerLogsModel{
+	return Model{
 		table: newTable,
 	}
 }
