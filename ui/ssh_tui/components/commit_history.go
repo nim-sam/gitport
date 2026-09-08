@@ -8,6 +8,14 @@ import (
 	"github.com/nim-sam/gitport/ui"
 )
 
+/*
+ * Commit history is a bubbles list wrapper used to visualize the repo's most recent
+ * commits. It is located in the left panel of the commit history dashboard tab.
+ * It also provides helper methods to get the currently selected commit from
+ * the list model . It also passes messages to the commit viewport, such that it can
+ * update its content according to the currently selected commit item.
+ */
+
 // CommitItem implements list.Item interface
 type CommitItem struct {
 	author  string

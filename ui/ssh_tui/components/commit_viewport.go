@@ -8,6 +8,14 @@ import (
 	"github.com/nim-sam/gitport/ui"
 )
 
+/*
+ * The commit viewport is the component found in the right panel of the commit history
+ * tab of the GitPort dashboard. The commit viewport displays the commit diff of the
+ * currently selected commit by the commit history model. The reason as to why a plain
+ * viewport wasn't used was for better message passing management and decluttering
+ * the dashboard code from lipgloss styling
+ */
+
 // Custom viewport wrapper to visualize git diffs
 type CommitViewport struct {
 	viewport viewport.Model
