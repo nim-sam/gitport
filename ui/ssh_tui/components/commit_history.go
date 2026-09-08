@@ -8,6 +8,7 @@ import (
 	"github.com/nim-sam/gitport/ui"
 )
 
+// CommitItem implements list.Item interface
 type CommitItem struct {
 	author  string
 	hash    string
@@ -23,25 +24,53 @@ func (i CommitItem) Description() string {
 	return i.author + " @ " + i.date
 }
 
+// Commit History Model
 type CommitHistoryModel struct {
 	selectedCommit int
 	ListModel      list.Model
 	commits        []model.Commit
 	Width          int
 	Height         int
+	focused        bool
 }
 
-func (c CommitHistoryModel) Init() tea.Cmd { return nil }
+// Commit Selection Message
+type CommitSelectionMsg struct {
+	commit model.Commit
+}
+
+func (c CommitHistoryModel) Init() tea.Cmd {
+	// Sends currently selected commit instance through a CommitSelectionMsg upon
+	// model initialization
+	return createCommitSelectionMsg(
+		c.GetCurrentCommit(),
+	)
+
+}
+
 func (c CommitHistoryModel) Update(msg tea.Msg) (CommitHistoryModel, tea.Cmd) {
+
+	var cmd tea.Cmd
+
+	// Update list model
 	c.ListModel.SetSize(c.Width, c.Height)
-	c.ListModel, _ = c.ListModel.Update(msg)
-	return c, nil
+
+	if c.focused {
+		c.ListModel, _ = c.ListModel.Update(msg)
+
+		// Send currently selected commit instance through a CommitSelectionMsg upon
+		// updating the list model
+		cmd = createCommitSelectionMsg(
+			c.GetCurrentCommit(),
+		)
+	}
+
+	return c, cmd
 }
 func (c CommitHistoryModel) View() string {
 
 	container := lipgloss.NewStyle().
 		Width(c.Width)
-		// Padding(0, 1)
 
 	return container.Render(c.ListModel.View())
 }
@@ -63,6 +92,8 @@ func NewCommitHistory(commits []model.Commit) CommitHistoryModel {
 
 	// Defining new delegate
 	delegate := list.NewDefaultDelegate()
+
+	// Selected
 	delegate.Styles.SelectedTitle = lipgloss.NewStyle().
 		Foreground(ui.Palette.Accent).
 		Border(lipgloss.HiddenBorder(), false, false, false, true).
@@ -75,11 +106,15 @@ func NewCommitHistory(commits []model.Commit) CommitHistoryModel {
 		Padding(0, 1).
 		BorderForeground(ui.Palette.Accent).
 		Italic(true)
+
+	// Normal
 	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
 		Foreground(ui.Palette.FgHighlight)
 	delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.
 		Italic(true).
 		Foreground(ui.Palette.FgMuted)
+
+	// Dimmed
 	delegate.Styles.DimmedTitle = lipgloss.NewStyle().
 		Foreground(ui.Palette.Fg).
 		Border(lipgloss.HiddenBorder(), false, false, false, true).
@@ -104,8 +139,27 @@ func NewCommitHistory(commits []model.Commit) CommitHistoryModel {
 	}
 }
 
+// Sets m.focused value
+func (m *CommitHistoryModel) SetFocused(value bool) {
+	m.focused = value
+}
+
 // Returns currenty selected commit
 func (m CommitHistoryModel) GetCurrentCommit() model.Commit {
 	index := m.ListModel.Index()
 	return m.commits[index]
+}
+
+// CommitSelectionMsg commit getter
+func (msg CommitSelectionMsg) GetCommit() model.Commit {
+	return msg.commit
+}
+
+// Create CommitSelectionMsg containing currently selected commit
+func createCommitSelectionMsg(commit model.Commit) tea.Cmd {
+	return func() tea.Msg {
+		return CommitSelectionMsg{
+			commit: commit,
+		}
+	}
 }

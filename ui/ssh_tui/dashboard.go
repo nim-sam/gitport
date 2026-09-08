@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	overlay "github.com/floatpane/bubble-overlay"
-	"github.com/nim-sam/gitport/internal/config"
 	"github.com/nim-sam/gitport/internal/repository"
 	"github.com/nim-sam/gitport/internal/server"
 	"github.com/nim-sam/gitport/pkg/dialog"
@@ -141,12 +140,12 @@ func NewDashboard(server server.Server) dashboardModel {
 // dashboardModel's Model implementation
 
 func (m dashboardModel) Init() tea.Cmd {
-	return nil
+	return m.commitHistory.Init()
 }
 
 func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
-	var cmd tea.Cmd
+	var cmds tea.BatchMsg
 
 	switch msg := msg.(type) {
 
@@ -339,19 +338,11 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Setting commitViewport content based on tab selection
-	switch m.tab {
-	case commitHistory:
-		commit := m.commitHistory.GetCurrentCommit()
-		diff := config.GitportServer.GetCommitDiff(commit.Hash)
-		m.commitViewport.SetContent(diff)
-	default:
-		m.commitViewport.SetContent("")
-	}
-
 	// Passing messages to dashboard sub-models
+	var SubmodelUpdateCmd tea.Cmd
 	switch m.tab {
 	case userManagement:
+
 		switch m.state {
 		// Broswing users
 		case DefaultState, FilterState:
@@ -361,28 +352,42 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Creating user
 		case CreateState:
 			m.focus = popUpPanel
-			m.userCreationForm, cmd = m.userCreationForm.Update(msg)
+			m.userCreationForm, SubmodelUpdateCmd = m.userCreationForm.Update(msg)
 		// Editing user
 		case EditState:
 			m.focus = popUpPanel
-			m.userModificationForm, cmd = m.userModificationForm.Update(msg)
+			m.userModificationForm, SubmodelUpdateCmd = m.userModificationForm.Update(msg)
 		// Deleting user dialog
 		case DeleteState:
 			m.focus = popUpPanel
-			m.confirmUserDeletionDialog, cmd = m.confirmUserDeletionDialog.Update(msg)
+			m.confirmUserDeletionDialog, SubmodelUpdateCmd = m.confirmUserDeletionDialog.Update(msg)
+		}
+		cmds = append(cmds, SubmodelUpdateCmd)
 
-		}
 	case commitHistory:
-		switch m.focus {
-		case leftPanel:
-			m.commitHistory, _ = m.commitHistory.Update(msg)
-		case rightPanel:
-			m.commitViewport, _ = m.commitViewport.Update(msg)
+
+		if m.focus == leftPanel {
+			m.commitHistory.SetFocused(true)
+			m.commitViewport.SetFocused(false)
+		} else {
+			m.commitHistory.SetFocused(false)
+			m.commitViewport.SetFocused(true)
 		}
+
+		// Update commit history list model
+		var commitHistoryMessage tea.Cmd
+		m.commitHistory, commitHistoryMessage = m.commitHistory.Update(msg)
+		cmds = append(cmds, commitHistoryMessage)
+
+		// Update commit viewport
+		var commitViewportMessage tea.Cmd
+		m.commitViewport, commitViewportMessage = m.commitViewport.Update(msg)
+		cmds = append(cmds, commitViewportMessage)
 
 	case serverLogs:
 		m.focus = fullPanel
-		m.serverLogs, _ = m.serverLogs.Update(msg)
+		m.serverLogs, SubmodelUpdateCmd = m.serverLogs.Update(msg)
+		cmds = append(cmds, SubmodelUpdateCmd)
 	}
 
 	// Handling navigation during filter states from list models
@@ -397,7 +402,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.help, _ = m.help.Update(msg)
 
-	return m, cmd
+	return m, tea.Batch(cmds...)
 }
 
 func (m dashboardModel) View() string {
@@ -414,7 +419,7 @@ func (m dashboardModel) View() string {
 		switch m.state {
 		default:
 			leftPanelContent = m.userList.View()
-			rightPanelContent = m.commitViewport.View()
+			rightPanelContent = ""
 		}
 	// Commit History Tab
 	case commitHistory:
