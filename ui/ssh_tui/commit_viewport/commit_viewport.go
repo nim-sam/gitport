@@ -1,6 +1,8 @@
 package commitviewport
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -16,6 +18,40 @@ import (
  * viewport wasn't used was for better message passing management and decluttering
  * the dashboard code from lipgloss styling
  */
+
+// Styles
+
+var (
+	normalText  = lipgloss.NewStyle().Foreground(ui.Palette.FgMuted)
+	addedLine   = lipgloss.NewStyle().Foreground(ui.Palette.FgHighlight).Bold(true)
+	removedLine = lipgloss.NewStyle().Foreground(ui.Palette.Fg).Italic(true)
+)
+
+// Apply styles to diff text
+func stylizeDiff(diff string) string {
+
+	diffLines := strings.Split(diff, "\n")
+	var out []string
+
+	for _, line := range diffLines {
+		// Skip if line is empty
+		if len(line) == 0 {
+			continue
+		}
+		switch line[0] {
+		case '+':
+			line = addedLine.Render(line)
+		case '-':
+			line = removedLine.Render(line)
+		default:
+			line = normalText.Render(line)
+		}
+
+		out = append(out, line)
+	}
+
+	return strings.Join(out, "\n")
+}
 
 // Viewport wrapper to visualize git diffs
 type Model struct {
@@ -60,11 +96,7 @@ func (m *Model) Height(h int) *Model { m.height = h; return m }
 
 // Styles git diff string and sets viewport's content
 func (m *Model) SetContent(diff string) {
-
-	textStyle := lipgloss.NewStyle().
-		Foreground(ui.Palette.Fg)
-
-	m.viewport.SetContent(textStyle.Render(diff))
+	m.viewport.SetContent(stylizeDiff(diff))
 }
 
 // Sets m.focused value
