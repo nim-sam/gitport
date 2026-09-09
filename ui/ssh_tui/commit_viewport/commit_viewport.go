@@ -66,8 +66,8 @@ func (m Model) Init() tea.Cmd { return nil }
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	// Set dimensions
-	m.viewport.Height = m.height
-	m.viewport.Width = m.width
+	m.viewport.Height = m.height - 2
+	m.viewport.Width = m.width - 2
 
 	switch msg := msg.(type) {
 
@@ -88,7 +88,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) View() string { return m.viewport.View() }
+func (m Model) View() string {
+
+	diffContainer := lipgloss.NewStyle().
+		Height(m.height).
+		Width(m.width).
+		Padding(1, 1)
+
+	return diffContainer.Render(m.viewport.View())
+}
 
 // Width and height setters
 func (m *Model) Width(w int) *Model  { m.width = w; return m }
