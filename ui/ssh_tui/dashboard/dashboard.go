@@ -1,4 +1,4 @@
-package ssh_tui
+package dashboard
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	overlay "github.com/floatpane/bubble-overlay"
+	"github.com/nim-sam/gitport/internal/model"
 	"github.com/nim-sam/gitport/internal/repository"
-	"github.com/nim-sam/gitport/internal/server"
 	"github.com/nim-sam/gitport/pkg/dialog"
 	"github.com/nim-sam/gitport/pkg/navigator"
 
@@ -23,6 +23,13 @@ import (
 	serverlogs "github.com/nim-sam/gitport/ui/ssh_tui/server_logs"
 	userlist "github.com/nim-sam/gitport/ui/ssh_tui/user_list"
 )
+
+/*
+ * The Dashboard model is the ssh-accessible Terminal User Interface (TUI) that handles
+ * GitPort server management. The TUI provides admin users the ability to manage users
+ * (creating, editing, deleting), view most recent commits done on the repository along
+ * their respective commit diffs, and a table of timestamped server logs.
+ */
 
 // Dashboard states
 
@@ -57,7 +64,7 @@ const (
 
 // Dashboard Model
 
-type dashboardModel struct {
+type Model struct {
 
 	// UserList-related specs
 	userList userlist.Model
@@ -101,12 +108,7 @@ type dashboardModel struct {
 }
 
 // Inititializes and instantiates dashboard mdoel
-func NewDashboard(server server.Server) dashboardModel {
-
-	// Loading records from database
-	users := repository.UserRepo.Load()
-	commits := server.LoadCommits(30)
-	logs := repository.LogRepo.Load()
+func New(users []model.User, commits []model.Commit, logs []model.Log) Model {
 
 	nav := navigator.New()
 	nav.Title = "GitPort"
@@ -126,10 +128,10 @@ func NewDashboard(server server.Server) dashboardModel {
 
 	h := help.New()
 
-	v := commitviewport.New()
+	v := commitviewport.New(make(map[string]string))
 
 	// Return new dashboard model
-	return dashboardModel{
+	return Model{
 		commitViewport:            v,
 		navigator:                 nav,
 		userList:                  u,
@@ -142,13 +144,13 @@ func NewDashboard(server server.Server) dashboardModel {
 	}
 }
 
-// dashboardModel's Model implementation
+// Model's Model implementation
 
-func (m dashboardModel) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	return m.commitHistory.Init()
 }
 
-func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmds tea.BatchMsg
 
@@ -410,7 +412,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m dashboardModel) View() string {
+func (m Model) View() string {
 
 	var leftPanelContent string
 	var rightPanelContent string
