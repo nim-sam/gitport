@@ -1,7 +1,6 @@
 package model
 
 import (
-	_ "github.com/charmbracelet/wish/git"
 	"gorm.io/gorm"
 )
 
