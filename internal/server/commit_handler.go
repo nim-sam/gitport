@@ -4,7 +4,6 @@ import (
 	"io"
 	"strings"
 
-	_ "github.com/charmbracelet/wish"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
