@@ -2,6 +2,7 @@ package server
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/go-git/go-git/v5"
 )
@@ -10,6 +11,8 @@ import (
 var cwd, _ = os.Getwd()
 var repo, _ = git.PlainOpen(cwd)
 var configDir, _ = os.UserConfigDir()
+var worktree, _ = repo.Worktree()
+var reponame = filepath.Base(worktree.Filesystem.Root())
 
 // GitportServer is the process-wide server singleton.
 //
@@ -21,5 +24,6 @@ var configDir, _ = os.UserConfigDir()
 var GitportServer = Server{
 	Root:      cwd,
 	Repo:      repo,
+	Name:      reponame,
 	ConfigDir: configDir,
 }
