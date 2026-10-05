@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nim-sam/gitport/internal/server"
 	"github.com/nim-sam/gitport/ui"
 	commithistory "github.com/nim-sam/gitport/ui/ssh_tui/commit_history"
 )
@@ -77,8 +78,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case commithistory.CommitSelectionMsg:
 		commit := msg.GetCommit()
 		_ = commit
-		//diff := server.GitportServer.GetCommitDiff(commit.Hash)
-		//m.SetContent(diff)
+		diff := server.GitportServer.GetCommitDiff(commit.Hash)
+		m.SetContent(diff)
 		m.viewport.SetYOffset(0)
 	}
 
