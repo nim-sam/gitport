@@ -34,6 +34,35 @@ func (r Repository[D]) Load() []D {
 	return records
 }
 
+// All returns all records of type DAO, or an error. It is the non-panicking
+// counterpart to Load, for use on the SSH authentication path where a database
+// failure must deny access rather than terminate the process.
+func (r Repository[D]) All() ([]D, error) {
+	var records []D
+
+	result := r.DB.Find(&records)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return records, nil
+}
+
+// Returns the first record matching conds, or an error if none exists. Unlike
+// the other methods this never panics: it is called on the SSH authentication
+// path, where a database failure must deny access rather than terminate the
+// process. Callers should test for gorm.ErrRecordNotFound.
+func (r Repository[D]) First(conds ...any) (D, error) {
+	var record D
+
+	result := r.DB.First(&record, conds...)
+	if result.Error != nil {
+		return record, result.Error
+	}
+
+	return record, nil
+}
+
 // Deletes record by primary key
 func (r Repository[D]) Delete(ID uint) {
 	// Fetch record
