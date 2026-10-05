@@ -12,7 +12,7 @@ import (
 func main() {
 
 	host := flag.String("host", "0.0.0.0", "address to bind the ssh server to")
-	port := flag.String("port", "23234", "port to bind the ssh server to")
+	port := flag.String("port", "22", "port to bind the ssh server to")
 	flag.Parse()
 
 	server.GitportServer.Host = *host
