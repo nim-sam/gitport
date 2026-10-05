@@ -131,8 +131,14 @@ func (m *Model) SetFocused(value bool) {
 	m.focused = value
 }
 
-// Returns currenty selected commit
+// Returns currenty selected commit. Returns the zero commit when the list is
+// empty, which is the case for a repository with no commits.
 func (m Model) GetCurrentCommit() model.Commit {
 	index := m.ListModel.Index()
+
+	if index < 0 || index >= len(m.commits) {
+		return model.Commit{}
+	}
+
 	return m.commits[index]
 }
