@@ -107,8 +107,24 @@ type Model struct {
 	help help.Model
 }
 
+// Fallback terminal geometry, used when a session reports no usable PTY
+// dimensions. Without it, sub-model widths would derive from zero and the
+// dashboard would render collapsed.
+const (
+	fallbackWidth  = 80
+	fallbackHeight = 24
+)
+
 // Inititializes and instantiates dashboard mdoel
-func New(users []model.User, commits []model.Commit, logs []model.Log) Model {
+//
+// width and height are the dimensions of the terminal the dashboard is being
+// rendered into. Over ssh they come from the session's PTY, since Bubble Tea
+// cannot detect the size of a non-local terminal on startup.
+//
+// diff resolves a commit hash to its unified diff. It is supplied by the caller
+// rather than imported, because the ssh server that assembles this dashboard
+// lives in internal/server and must not be depended upon from here.
+func New(users []model.User, commits []model.Commit, logs []model.Log, width, height int, diff commitviewport.DiffSource) Model {
 
 	nav := navigator.New()
 	nav.Title = "GitPort"
@@ -128,10 +144,10 @@ func New(users []model.User, commits []model.Commit, logs []model.Log) Model {
 
 	h := help.New()
 
-	v := commitviewport.New(make(map[string]string))
+	v := commitviewport.New(make(map[string]string), diff)
 
 	// Return new dashboard model
-	return Model{
+	m := Model{
 		commitViewport:            v,
 		navigator:                 nav,
 		userList:                  u,
@@ -142,6 +158,71 @@ func New(users []model.User, commits []model.Commit, logs []model.Log) Model {
 		confirmUserDeletionDialog: dia,
 		help:                      h,
 	}
+
+	// Lay the dashboard out immediately so the very first frame is sized
+	// correctly instead of waiting for a tea.WindowSizeMsg that only arrives
+	// once the terminal is resized.
+	m.resize(width, height)
+
+	return m
+}
+
+// resize propagates a terminal resize down to every sub-model, deriving the
+// dashboard, inner interface and panel dimensions from the given screen size.
+func (m *Model) resize(width, height int) {
+	if width <= 0 {
+		width = fallbackWidth
+	}
+	if height <= 0 {
+		height = fallbackHeight
+	}
+
+	// Terminal window dimensions
+	m.screenWidth = width - 2
+	m.screenHeight = height - 2
+
+	// Application interface dimensions
+	m.innerWidth = int(float32(m.screenWidth) * 0.90)
+	m.innerHeight = int(float32(m.screenHeight) * 0.60)
+
+	// Left-Right panel dimensions
+	m.leftWidth = int(float32(m.innerWidth) * 0.50)
+	m.rightWidth = m.innerWidth - m.leftWidth - 2
+
+	// commitViewport inherits dimensions from right panel
+	m.commitViewport.Height(m.innerHeight)
+	m.commitViewport.Width(m.rightWidth)
+
+	// Navigator inherits width from inner width
+	m.navigator.Width = m.innerWidth
+
+	// UserList inherits dimensions from left panel
+	m.userList.Height = m.innerHeight
+	m.userList.Width = m.leftWidth
+	m.userList.ListModel.SetSize(m.userList.Width, m.userList.Height)
+
+	// UserCreationForm inherits dimensions from right panel
+	m.userCreationForm.Width = m.rightWidth
+	m.userCreationForm.Height = int(float32(m.innerHeight) * 2 / 3)
+
+	// UserModificatoinForm inherits dimensions from right panel
+	m.userModificationForm.Width = m.rightWidth
+	m.userModificationForm.Height = int(float32(m.innerHeight) * 2 / 3)
+
+	// Dialog inherits dimensions from right panel
+	m.confirmUserDeletionDialog.Width = m.rightWidth
+	m.confirmUserDeletionDialog.Height = int(float32(m.innerHeight) * 2 / 3)
+
+	// CommitHistory inherits dimensions from full panel
+	m.commitHistory.Height = m.innerHeight
+	m.commitHistory.Width = m.leftWidth
+
+	// ServerLogs inherits dimensions from full panel
+	m.serverLogs.Width = m.innerWidth
+	m.serverLogs.Height = m.innerHeight
+
+	// Help inherits dimenaions from innerWidth
+	m.help.Width = m.innerWidth
 }
 
 // Model's Model implementation
@@ -158,52 +239,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 
-		// Terminal window dimensions
-		m.screenWidth = msg.Width - 2
-		m.screenHeight = msg.Height - 2
-
-		// Application interface dimensions
-		m.innerWidth = int(float32(m.screenWidth) * 0.90)
-		m.innerHeight = int(float32(m.screenHeight) * 0.60)
-
-		// Left-Right panel dimensions
-		m.leftWidth = int(float32(m.innerWidth) * 0.50)
-		m.rightWidth = m.innerWidth - m.leftWidth - 2
-
-		// commitViewport inherits dimensions from right panel
-		m.commitViewport.Height(m.innerHeight)
-		m.commitViewport.Width(m.rightWidth)
-
-		// Navigator inherits width from inner width
-		m.navigator.Width = m.innerWidth
-
-		// UserList inherits dimensions from left panel
-		m.userList.Height = m.innerHeight
-		m.userList.Width = m.leftWidth
-		m.userList.ListModel.SetSize(m.userList.Width, m.userList.Height)
-
-		// UserCreationForm inherits dimensions from right panel
-		m.userCreationForm.Width = m.rightWidth
-		m.userCreationForm.Height = int(float32(m.innerHeight) * 2 / 3)
-
-		// UserModificatoinForm inherits dimensions from right panel
-		m.userModificationForm.Width = m.rightWidth
-		m.userModificationForm.Height = int(float32(m.innerHeight) * 2 / 3)
-
-		// Dialog inherits dimensions from right panel
-		m.confirmUserDeletionDialog.Width = m.rightWidth
-		m.confirmUserDeletionDialog.Height = int(float32(m.innerHeight) * 2 / 3)
-
-		// CommitHistory inherits dimensions from full panel
-		m.commitHistory.Height = m.innerHeight
-		m.commitHistory.Width = m.leftWidth
-
-		// ServerLogs inherits dimensions from full panel
-		m.serverLogs.Width = m.innerWidth
-		m.serverLogs.Height = m.innerHeight
-
-		// Help inherits dimenaions from innerWidth
-		m.help.Width = m.innerWidth
+		// Propagate the new terminal dimensions to every sub-model
+		m.resize(msg.Width, msg.Height)
 
 	case tea.KeyMsg:
 
