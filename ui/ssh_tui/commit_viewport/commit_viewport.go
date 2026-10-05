@@ -59,6 +59,7 @@ type Model struct {
 	width    int
 	height   int
 	focused  bool
+	diffs    map[string]string
 }
 
 func (m Model) Init() tea.Cmd { return nil }
@@ -76,8 +77,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	// in the message
 	case commithistory.CommitSelectionMsg:
 		commit := msg.GetCommit()
-		diff := config.GitportServer.GetCommitDiff(commit.Hash)
-		m.SetContent(diff)
+		_ = commit
+		//diff := server.GitportServer.GetCommitDiff(commit.Hash)
+		//m.SetContent(diff)
 		m.viewport.SetYOffset(0)
 	}
 
@@ -111,10 +113,11 @@ func (m *Model) SetContent(diff string) {
 func (m *Model) SetFocused(value bool) { m.focused = value }
 
 // Create new commit viewport
-func New() Model {
+func New(diffs map[string]string) Model {
 	return Model{
 		viewport: viewport.New(0, 0),
 		height:   0,
 		width:    0,
+		diffs:    diffs,
 	}
 }
