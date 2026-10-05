@@ -1,28 +1,26 @@
 package main
 
 import (
-	_ "strings"
+	"flag"
+	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nim-sam/gitport/internal/repository"
+	"github.com/charmbracelet/log"
+
 	"github.com/nim-sam/gitport/internal/server"
-	"github.com/nim-sam/gitport/ui/ssh_tui/dashboard"
 )
 
 func main() {
 
-	// fmt.Printf(server.Root)
-	// fmt.Printf(server.LoadCommits(1)[0].Message)
+	host := flag.String("host", "0.0.0.0", "address to bind the ssh server to")
+	port := flag.String("port", "23234", "port to bind the ssh server to")
+	flag.Parse()
 
-	// commits := Server.LoadCommits(30)
-	// println(Server.GetCommitDiff(commits[2].Hash))
+	server.GitportServer.Host = *host
+	server.GitportServer.Port = *port
 
-	users := repository.UserRepo.Load()
-	commits := server.GitportServer.LoadCommits(30)
-	logs := repository.LogRepo.Load()
-
-	d := dashboard.New(users, commits, logs)
-	p := tea.NewProgram(d, tea.WithAltScreen())
-	p.Run()
-
+	// Start blocks until the listener exits or the process is interrupted
+	if err := server.GitportServer.Start(); err != nil {
+		log.Error("Could not run GitPort server", "error", err)
+		os.Exit(1)
+	}
 }
