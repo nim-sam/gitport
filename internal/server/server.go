@@ -21,6 +21,7 @@ import (
 	"github.com/charmbracelet/wish/recover"
 	"github.com/go-git/go-git/v5"
 
+	"github.com/nim-sam/gitport/internal/mdns"
 	"github.com/nim-sam/gitport/internal/repository"
 	"github.com/nim-sam/gitport/internal/util"
 	"github.com/nim-sam/gitport/ui/ssh_tui/dashboard"
@@ -29,7 +30,7 @@ import (
 const (
 	// Defaults used when Host and/or Port are left empty on the Server
 	defaultHost = "0.0.0.0"
-	defaultPort = "23234"
+	defaultPort = "22"
 
 	// Number of most recent commits handed to the dashboard
 	commitLimit = 30
@@ -51,7 +52,8 @@ type Server struct {
 	Port      string
 }
 
-// Starts GitPort server and serves it over ssh via Wish
+// Starts GitPort server and serves it over ssh via Wish. The server is also
+// announced on the local network via mDNS as <repo>-gitport.local.
 //
 // Blocks until the listener exits or the process is interrupted, at which
 // point in-flight sessions are given shutdownTimeout to drain.
@@ -72,18 +74,34 @@ func (s Server) Start() error {
 
 	address := net.JoinHostPort(host, port)
 
-	// Advertise the routable address; "0.0.0.0" is a bind address, not
-	// something a client can dial.
-	dialHost := host
-	if dialHost == defaultHost {
-		dialHost = util.GetLocalIP()
+	// mDNS needs a concrete IP to publish. "0.0.0.0" is a bind address, not
+	// something a client can dial, and a hostname can't be announced as an
+	// A record, so fall back to the detected LAN address in both cases.
+	announceIP := host
+	if announceIP == defaultHost || net.ParseIP(announceIP) == nil {
+		announceIP = util.GetLocalIP()
+	}
+
+	// Announce <repo>-gitport.local. Failure is non-fatal: the server still
+	// works by IP. On error Announce returns a no-op cleanup, so the defer
+	// is safe either way.
+	dialHost, stopMDNS, err := mdns.Announce(s.Name, port, announceIP)
+	if err != nil {
+		log.Warn("mDNS announce failed, serving by IP only", "err", err)
+		dialHost = announceIP
+	}
+	defer stopMDNS()
+
+	connect := "ssh " + dialHost
+	if port != "22" {
+		connect = fmt.Sprintf("ssh -p %s %s", port, dialHost)
 	}
 
 	srv, err := wish.NewServer(
 		wish.WithAddress(address),
 		wish.WithHostKeyPath(hostKeyPath),
 		wish.WithVersion("GitPort"),
-		wish.WithBanner(fmt.Sprintf("GitPort is served over ssh on %s. Type 'exit' to disconnect.", net.JoinHostPort(dialHost, port))),
+		wish.WithBanner(fmt.Sprintf("GitPort is served over ssh. Connect with: %s. Type 'exit' to disconnect.", connect)),
 		wish.WithMiddleware(
 			wishbubbletea.Middleware(s.dashboardHandler),
 			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.
@@ -97,7 +115,7 @@ func (s Server) Start() error {
 
 	log.Info("Starting GitPort server",
 		"listen", address,
-		"connect", net.JoinHostPort(dialHost, port),
+		"connect", connect,
 		"host_key", hostKeyPath,
 	)
 
@@ -114,6 +132,14 @@ func (s Server) Start() error {
 	select {
 	case err := <-errCh:
 		if err != nil && !errors.Is(err, ssh.ErrServerClosed) {
+			if errors.Is(err, syscall.EACCES) {
+				return fmt.Errorf("cannot bind %s: permission denied. Grant CAP_NET_BIND_SERVICE "+
+					"(systemd AmbientCapabilities or `setcap 'cap_net_bind_service=+ep' <binary>`), "+
+					"or redirect 22 to a high port: %w", address, err)
+			}
+			if errors.Is(err, syscall.EADDRINUSE) {
+				return fmt.Errorf("%s is already in use (is the system sshd still on port %s?): %w", address, port, err)
+			}
 			return fmt.Errorf("could not start server: %w", err)
 		}
 		return nil
