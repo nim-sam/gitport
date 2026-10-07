@@ -68,9 +68,16 @@ type Model struct {
 	focused  bool
 	diffs    map[string]string
 	diff     DiffSource
+
+	// Takes care of keeping the offset of each viewport from
+	// resetting each time a CommitSelectionMsg is emitted
+	offset             map[string]int
+	selectedCommitHash string
 }
 
-func (m Model) Init() tea.Cmd { return nil }
+func (m Model) Init() tea.Cmd {
+	return nil
+}
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
@@ -84,15 +91,19 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	// viewport content with commit diff based on the commit contained
 	// in the message
 	case commithistory.CommitSelectionMsg:
+
 		commit := msg.GetCommit()
-		_ = commit
+		m.selectedCommitHash = commit.Hash
+
 		diff := m.getDiff(commit.Hash)
 		m.SetContent(diff)
-		m.viewport.SetYOffset(0)
+
+		m.viewport.SetYOffset(m.offset[m.selectedCommitHash])
 	}
 
 	if m.focused {
 		m.viewport, _ = m.viewport.Update(msg)
+		m.offset[m.selectedCommitHash] = m.viewport.YOffset
 	}
 
 	return m, nil
@@ -137,5 +148,6 @@ func New(diffs map[string]string, diff DiffSource) Model {
 		width:    0,
 		diffs:    diffs,
 		diff:     diff,
+		offset:   make(map[string]int),
 	}
 }
