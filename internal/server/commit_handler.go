@@ -1,7 +1,7 @@
 package server
 
 import (
-	"io"
+	// "io"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -32,11 +32,11 @@ func (s Server) LoadCommits(limit int) []model.Commit {
 	}
 
 	var out []model.Commit
-	count := 0
+	// count := 0
 	err = commitIter.ForEach(func(c *object.Commit) error {
-		if count >= limit {
-			return io.EOF
-		}
+		// if count >= limit {
+		// 	return io.EOF
+		// }
 
 		message := strings.TrimSpace(c.Message)
 
@@ -47,7 +47,7 @@ func (s Server) LoadCommits(limit int) []model.Commit {
 				Message: message,
 				Date:    c.Author.When.Format("Jan 02 2006"),
 			})
-		count++
+		// count++
 		return nil
 	})
 
