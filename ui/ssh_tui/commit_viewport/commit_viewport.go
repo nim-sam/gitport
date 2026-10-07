@@ -73,6 +73,10 @@ type Model struct {
 	// resetting each time a CommitSelectionMsg is emitted
 	offset             map[string]int
 	selectedCommitHash string
+
+	// Display data
+	commitHashShort string
+	commitMsg       string
 }
 
 func (m Model) Init() tea.Cmd {
@@ -99,6 +103,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.SetContent(diff)
 
 		m.viewport.SetYOffset(m.offset[m.selectedCommitHash])
+
+		// Setting commit display values
+		m.commitHashShort = commit.Hash[:6]
+		m.commitMsg = commit.Message
 	}
 
 	if m.focused {
@@ -112,11 +120,37 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 
 	diffContainer := lipgloss.NewStyle().
-		Height(m.height).
+		Height(m.height-2).
 		Width(m.width).
-		Padding(1, 1)
+		Padding(0, 1)
 
-	return diffContainer.Render(m.viewport.View())
+	diffTitle := "[" + m.commitHashShort + "] " + m.commitMsg
+
+	if len(diffTitle) > m.width {
+		diffTitle = diffTitle[:m.width-5]
+		diffTitle += "…"
+	}
+
+	diffTitleRender := lipgloss.NewStyle().
+		Width(m.width-2).
+		Height(1).
+		Align(lipgloss.Center).
+		Bold(true).
+		Foreground(ui.Palette.Fg).
+		Border(lipgloss.NormalBorder(), false, false, true, false).
+		BorderForeground(ui.Palette.Border).
+		Render(diffTitle)
+
+	titleCentered := lipgloss.NewStyle().
+		AlignHorizontal(lipgloss.Center).
+		Width(m.width).
+		Render(diffTitleRender)
+
+	return lipgloss.JoinVertical(
+		lipgloss.Top,
+		titleCentered,
+		diffContainer.Render(m.viewport.View()),
+	)
 }
 
 // Width and height setters
