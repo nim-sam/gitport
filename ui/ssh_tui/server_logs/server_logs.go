@@ -66,7 +66,9 @@ func New(l []model.Log) Model {
 		case model.Info:
 			logLevel = "Info"
 		}
-		rows = append(rows, []string{logLevel, log.Date, log.Message})
+
+		rows = append([]table.Row{[]string{logLevel, log.Date, log.Message}}, rows...)
+		// rows = append(rows, []string{logLevel, log.Date, log.Message})
 	}
 
 	newTable := table.New(
