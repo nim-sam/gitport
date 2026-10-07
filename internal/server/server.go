@@ -12,7 +12,6 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/charmbracelet/wish/activeterm"
@@ -21,6 +20,7 @@ import (
 	"github.com/charmbracelet/wish/recover"
 	"github.com/go-git/go-git/v5"
 
+	"github.com/nim-sam/gitport/internal/logger"
 	"github.com/nim-sam/gitport/internal/mdns"
 	"github.com/nim-sam/gitport/internal/repository"
 	"github.com/nim-sam/gitport/internal/util"
@@ -87,7 +87,7 @@ func (s Server) Start() error {
 	// is safe either way.
 	dialHost, stopMDNS, err := mdns.Announce(s.Name, port, announceIP)
 	if err != nil {
-		log.Warn("mDNS announce failed, serving by IP only", "err", err)
+		logger.Warn("mDNS announce failed, serving by IP only", "err", err)
 		dialHost = announceIP
 	}
 	defer stopMDNS()
@@ -113,7 +113,7 @@ func (s Server) Start() error {
 		return fmt.Errorf("could not start server: %w", err)
 	}
 
-	log.Info("Starting GitPort server",
+	logger.Info("Starting GitPort server",
 		"listen", address,
 		"connect", connect,
 		"host_key", hostKeyPath,
@@ -145,7 +145,7 @@ func (s Server) Start() error {
 		return nil
 
 	case <-ctx.Done():
-		log.Info("Stopping GitPort server")
+		logger.Info("Stopping GitPort server")
 
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()

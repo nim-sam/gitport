@@ -8,9 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/log"
+	// "github.com/charmbracelet/log"
 	"github.com/grandcat/zeroconf"
 
+	"github.com/nim-sam/gitport/internal/logger"
+	// "github.com/nim-sam/gitport/internal/model"
 	"github.com/nim-sam/gitport/internal/util"
 )
 
@@ -56,6 +58,8 @@ func Announce(repo, port, ip string) (host string, cleanup func(), err error) {
 		return "", noop, err
 	}
 
-	log.Info("mDNS announced", "name", label+".local", "ip", ip)
+	logger.Info("mDNS announced", "name", label+".local", "ip", ip)
+
 	return label + ".local", srv.Shutdown, nil
 }
+
