@@ -175,12 +175,13 @@ func (s Server) dashboardHandler(sess ssh.Session) (tea.Model, []tea.ProgramOpti
 	}
 
 	// Reload per session so the dashboard always reflects current repo and
-	// database state rather than a snapshot taken at startup.
+	// database state rather than a snapshot taken at startup. Commits (with
+	// their diffs) are read from the database populated by InitCommits.
 	users := repository.UserRepo.Load()
-	commits := s.LoadCommits(commitLimit)
+	commits := repository.LoadCommitsNewestFirst()
 	logs := repository.LogRepo.Load()
 
-	d := dashboard.New(users, commits, logs, width, height, s.GetCommitDiff)
+	d := dashboard.New(users, commits, logs, width, height)
 
 	return d, []tea.ProgramOption{tea.WithAltScreen()}
 }

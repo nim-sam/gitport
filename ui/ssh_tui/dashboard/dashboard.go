@@ -121,10 +121,10 @@ const (
 // rendered into. Over ssh they come from the session's PTY, since Bubble Tea
 // cannot detect the size of a non-local terminal on startup.
 //
-// diff resolves a commit hash to its unified diff. It is supplied by the caller
-// rather than imported, because the ssh server that assembles this dashboard
-// lives in internal/server and must not be depended upon from here.
-func New(users []model.User, commits []model.Commit, logs []model.Log, width, height int, diff commitviewport.DiffSource) Model {
+// Each commit carries its diff, so the commit viewport renders straight from
+// the commit in the selection message rather than resolving hashes through an
+// injected lookup.
+func New(users []model.User, commits []model.Commit, logs []model.Log, width, height int) Model {
 
 	nav := navigator.New()
 	nav.Title = "GitPort"
@@ -144,7 +144,7 @@ func New(users []model.User, commits []model.Commit, logs []model.Log, width, he
 
 	h := help.New()
 
-	v := commitviewport.New(make(map[string]string), diff)
+	v := commitviewport.New()
 
 	// Return new dashboard model
 	m := Model{

@@ -18,14 +18,6 @@ import (
  * the dashboard code from lipgloss styling
  */
 
-// DiffSource resolves a commit hash to its unified diff.
-//
-// It is injected rather than imported: the ssh server in internal/server builds
-// the dashboard, so the UI packages must not import internal/server themselves.
-// Diffs are resolved lazily on selection because generating them is expensive
-// and only one commit is ever on screen.
-type DiffSource func(hash string) string
-
 // Styles
 
 var (
@@ -66,8 +58,6 @@ type Model struct {
 	width    int
 	height   int
 	focused  bool
-	diffs    map[string]string
-	diff     DiffSource
 
 	// Takes care of keeping the offset of each viewport from
 	// resetting each time a CommitSelectionMsg is emitted
@@ -99,13 +89,17 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		commit := msg.GetCommit()
 		m.selectedCommitHash = commit.Hash
 
-		diff := m.getDiff(commit.Hash)
+		// The diff travels on the commit itself, so no lookup is needed
+		diff := commit.Diff
+		if diff == "" {
+			diff = "No diff available."
+		}
 		m.SetContent(diff)
 
 		m.viewport.SetYOffset(m.offset[m.selectedCommitHash])
 
 		// Setting commit display values
-		m.commitHashShort = commit.Hash[:6]
+		m.commitHashShort = shortHash(commit.Hash)
 		m.commitMsg = commit.Message
 	}
 
@@ -157,13 +151,14 @@ func (m Model) View() string {
 func (m *Model) Width(w int) *Model  { m.width = w; return m }
 func (m *Model) Height(h int) *Model { m.height = h; return m }
 
-// Returns the diff of the commit with hash <hash>, or a placeholder when the
-// model was built without a DiffSource
-func (m Model) getDiff(hash string) string {
-	if m.diff == nil {
-		return "No diff available."
+// shortHash returns the abbreviated hash shown in the viewport title. The
+// zero commit of an empty repository has an empty hash, so shorter inputs are
+// returned unchanged instead of panicking on a slice bound.
+func shortHash(hash string) string {
+	if len(hash) > 6 {
+		return hash[:6]
 	}
-	return m.diff(hash)
+	return hash
 }
 
 // Styles git diff string and sets viewport's content
@@ -175,13 +170,11 @@ func (m *Model) SetContent(diff string) {
 func (m *Model) SetFocused(value bool) { m.focused = value }
 
 // Create new commit viewport
-func New(diffs map[string]string, diff DiffSource) Model {
+func New() Model {
 	return Model{
 		viewport: viewport.New(0, 0),
 		height:   0,
 		width:    0,
-		diffs:    diffs,
-		diff:     diff,
 		offset:   make(map[string]int),
 	}
 }
