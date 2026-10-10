@@ -4,19 +4,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/nim-sam/gitport/internal/database"
 	"github.com/nim-sam/gitport/internal/model"
 	orm "github.com/nim-sam/gitport/pkg/mini_orm"
 )
 
 // Commit Repository
-var CommitRepo = orm.Repository[model.Commit]{
-	DB: database.DB,
-}
-
-func init() {
-	CommitRepo.DB.AutoMigrate(&model.Commit{})
-}
+var CommitRepo = orm.Repository[model.Commit]{}
 
 // LoadCommitsNewestFirst returns every stored commit, newest first: ordered
 // by author date descending, ties broken by descending id (insertion order).
