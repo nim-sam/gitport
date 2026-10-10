@@ -145,6 +145,7 @@ func (s Server) Run(ctx context.Context) error {
 		wish.WithAddress(address),
 		wish.WithHostKeyPath(hostKeyPath),
 		wish.WithVersion("GitPort"),
+		wish.WithPublicKeyAuth(s.authorize),
 		wish.WithBanner(fmt.Sprintf("GitPort is served over ssh. Connect with: %s. Type 'exit' to disconnect.", connect)),
 		wish.WithMiddleware(
 			wishbubbletea.Middleware(s.dashboardHandler),
