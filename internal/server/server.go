@@ -20,6 +20,7 @@ import (
 	"github.com/charmbracelet/wish/recover"
 	"github.com/go-git/go-git/v5"
 
+	"github.com/nim-sam/gitport/internal/config"
 	"github.com/nim-sam/gitport/internal/logger"
 	"github.com/nim-sam/gitport/internal/mdns"
 	"github.com/nim-sam/gitport/internal/repository"
@@ -44,20 +45,63 @@ const (
 )
 
 type Server struct {
-	Root      string
-	Name      string
-	Repo      *git.Repository
-	ConfigDir string
-	Host      string
-	Port      string
+	Root string
+	Name string
+	Repo *git.Repository
+	Host string
+	Port string
+
+	// Ready, when non-nil, is closed once the TCP listener is bound and the
+	// server is accepting connections. It lets a caller (such as the start TUI)
+	// tell "listening" apart from "still starting". Run closes it at most once,
+	// so a Server is intended to be served a single time.
+	Ready chan struct{}
 }
 
-// Starts GitPort server and serves it over ssh via Wish. The server is also
-// announced on the local network via mDNS as <repo>-gitport.local.
+// New builds a Server for the repository rooted at root from persisted
+// configuration.
 //
-// Blocks until the listener exits or the process is interrupted, at which
-// point in-flight sessions are given shutdownTimeout to drain.
+// Opening git is best-effort: a repository without commits, or a directory
+// with no .git at all, still yields a usable server, it simply has no history
+// to display. The display name falls back to the repository directory's name
+// so an unset config still announces something meaningful over mDNS.
+func New(root string, cfg config.Config) Server {
+	repo, err := git.PlainOpen(root)
+	if err != nil {
+		repo = nil
+	}
+
+	name := cfg.DisplayName
+	if name == "" {
+		name = filepath.Base(root)
+	}
+
+	return Server{
+		Root: root,
+		Repo: repo,
+		Name: name,
+		Host: cfg.Host,
+		Port: cfg.Port,
+	}
+}
+
+// Start runs the server until the process receives SIGINT/SIGTERM. It is a
+// convenience wrapper around Run for callers that do not manage a context.
 func (s Server) Start() error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	return s.Run(ctx)
+}
+
+// Run serves GitPort over ssh via Wish until ctx is cancelled or the listener
+// fails. The server is also announced on the local network via mDNS as
+// <repo>-gitport.local.
+//
+// Blocks until the listener exits or ctx is done, at which point in-flight
+// sessions are given shutdownTimeout to drain. Ready, when set, is closed after
+// the listener binds successfully.
+func (s Server) Run(ctx context.Context) error {
 
 	host, port := s.Host, s.Port
 	if host == "" {
@@ -113,38 +157,45 @@ func (s Server) Start() error {
 		return fmt.Errorf("could not start server: %w", err)
 	}
 
+	// Bind explicitly rather than through ListenAndServe so callers can observe
+	// the moment the listener is up.
+	ln, err := net.Listen("tcp", address)
+	if err != nil {
+		if errors.Is(err, syscall.EACCES) {
+			return fmt.Errorf("cannot bind %s: permission denied. Grant CAP_NET_BIND_SERVICE "+
+				"(systemd AmbientCapabilities or `setcap 'cap_net_bind_service=+ep' <binary>`), "+
+				"or redirect 22 to a high port: %w", address, err)
+		}
+		if errors.Is(err, syscall.EADDRINUSE) {
+			return fmt.Errorf("%s is already in use (is the system sshd still on port %s?): %w", address, port, err)
+		}
+		return fmt.Errorf("could not start server: %w", err)
+	}
+
+	if s.Ready != nil {
+		close(s.Ready)
+	}
+
 	logger.Info("Starting GitPort server",
 		"listen", address,
 		"connect", connect,
 		"host_key", hostKeyPath,
 	)
 
-	// signal.NotifyContext unregisters itself on the first interrupt, restoring
-	// the default behaviour so a second Ctrl-C force-quits.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- srv.ListenAndServe()
+		errCh <- srv.Serve(ln)
 	}()
 
 	select {
 	case err := <-errCh:
 		if err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-			if errors.Is(err, syscall.EACCES) {
-				return fmt.Errorf("cannot bind %s: permission denied. Grant CAP_NET_BIND_SERVICE "+
-					"(systemd AmbientCapabilities or `setcap 'cap_net_bind_service=+ep' <binary>`), "+
-					"or redirect 22 to a high port: %w", address, err)
-			}
-			if errors.Is(err, syscall.EADDRINUSE) {
-				return fmt.Errorf("%s is already in use (is the system sshd still on port %s?): %w", address, port, err)
-			}
 			return fmt.Errorf("could not start server: %w", err)
 		}
 		return nil
 
 	case <-ctx.Done():
+
 		logger.Info("Stopping GitPort server")
 
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
