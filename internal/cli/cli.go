@@ -27,12 +27,12 @@ func Run() error {
 		WithHandler(rootHandler).
 		Register()
 
-	// pecan.NewCommand().
-	// 	WithName("init").
-	// 	WithDesc("Initialize a repository as a GitPort server.").
-	// 	WithUsage("gitport init").
-	// 	WithHandler(initHandler).
-	// 	Register()
+	pecan.NewCommand().
+		WithName("init").
+		WithDesc("Initialize a repository as a GitPort server.").
+		WithUsage("gitport init").
+		WithHandler(initHandler).
+		Register()
 
 	pecan.NewCommand().
 		WithName("start").
