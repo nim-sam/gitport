@@ -118,7 +118,10 @@ func New(commits []model.Commit) Model {
 	model := list.New(commitItems, delegate, 0, 0)
 	model.SetShowHelp(false)
 	model.SetShowTitle(false)
-	model.SetShowStatusBar(false)
+	model.SetShowStatusBar(true)
+	model.SetShowPagination(false)
+	model.SetStatusBarItemName("commit", "commits")
+	model.SetShowFilter(true)
 
 	return Model{
 		commits:   commits,
