@@ -34,6 +34,7 @@ const (
 	stepPort
 	stepAdminName
 	stepAdminEmail
+	stepSshKey
 	stepReview
 )
 
@@ -119,7 +120,7 @@ func (m Model) View() string {
 	switch m.step {
 	case stepDisplayName:
 		body = m.inputs[0].View()
-		hint = "This is the name of the server instace. You can name it however you want."
+		hint = "This is the name of the server instance. You can name it however you want."
 	case stepHost:
 		body = m.inputs[1].View()
 		hint = "Bind to 0.0.0.0 to provide LAN access to the server."
@@ -132,6 +133,9 @@ func (m Model) View() string {
 	case stepAdminEmail:
 		body = m.inputs[4].View()
 		hint = "Email address of the root admin. Ideally matches with your Git config.email value."
+	case stepSshKey:
+		body = m.inputs[5].View()
+		hint = "Paste your personal public SSH key which will grant you auth. access to the server."
 	case stepReview:
 		body = m.review()
 		hint = "Upon review, press Enter to save the GitPort configs."
@@ -140,7 +144,7 @@ func (m Model) View() string {
 	hintStyle := lipgloss.NewStyle().Foreground(ui.Palette.FgMuted).Height(2).Padding(0, 1).Width(m.width - 2)
 	hint = hintStyle.Render(hint)
 
-	bodyStyle := lipgloss.NewStyle().Height(4).Padding(0, 1).Width(m.width - 2)
+	bodyStyle := lipgloss.NewStyle().Height(1).Padding(0, 1).Width(m.width - 2)
 	body = bodyStyle.Render(body)
 
 	contentContainer := table.New().
@@ -190,6 +194,7 @@ func (m Model) review() string {
 		row("Bind address", fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)),
 		row("Admin", admin.Name),
 		row("Email", admin.Email),
+		row("SSH Key", admin.SshKey[:m.width-25]+"…"),
 	)
 }
 
@@ -215,6 +220,7 @@ func (m Model) assemble() (config.Config, model.User) {
 		Name:        m.inputs[3].Value(),
 		Email:       m.inputs[4].Value(),
 		AccessLevel: model.Admin,
+		SshKey:      m.inputs[5].Value(),
 	}
 
 	return cfg, admin
@@ -249,6 +255,7 @@ func New(width int, height int) Model {
 		{"Port", 5},
 		{"Username", 32},
 		{"Email Address", 128},
+		{"SSH key", 512},
 	}
 
 	inputs := make([]textinput.Model, len(placeholders))
@@ -260,7 +267,7 @@ func New(width int, height int) Model {
 		t.Placeholder = p.placeholder
 		t.TextStyle = lipgloss.NewStyle().Foreground(ui.Palette.Fg)
 		t.Cursor.Style = lipgloss.NewStyle().Foreground(ui.Palette.Fg)
-		t.Width = width - 4
+		t.Width = width - 8
 		inputs[i] = t
 	}
 
@@ -286,6 +293,8 @@ func stepAsString(step step) string {
 		return "Admin username"
 	case stepAdminEmail:
 		return "Admin email"
+	case stepSshKey:
+		return "SSH Key"
 	case stepReview:
 		return "Review"
 	}
