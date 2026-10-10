@@ -192,6 +192,8 @@ func (m Model) review() string {
 	var strippedKey string
 	if len(admin.SshKey) > m.width-25 {
 		strippedKey = admin.SshKey[:m.width-25] + "…"
+	} else {
+		strippedKey = admin.SshKey
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left,
