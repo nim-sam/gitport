@@ -11,6 +11,8 @@ require (
 	github.com/charmbracelet/wish v1.4.7
 	github.com/floatpane/bubble-overlay v0.3.0
 	github.com/go-git/go-git/v5 v5.14.0
+	github.com/grandcat/zeroconf v1.0.0
+	github.com/nim-sam/pecan v0.0.0-20260803215955-97383e7672e6
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.2
 )
@@ -47,7 +49,6 @@ require (
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
-	github.com/grandcat/zeroconf v1.0.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
