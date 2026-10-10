@@ -7,6 +7,7 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // DB is the process-wide database handle. It is nil until Init runs, so any
@@ -31,7 +32,11 @@ func Init(root string) error {
 
 	dbPath := filepath.Join(dir, "gitport.db")
 
-	out, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	// Silent GORM's logger: it writes to stdout by default and would dump
+	// slow queries (with the full commit diff) over the Bubble Tea TUI.
+	out, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		return fmt.Errorf("could not open database: %w", err)
 	}
