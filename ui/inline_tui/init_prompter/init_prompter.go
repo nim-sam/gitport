@@ -101,7 +101,7 @@ func (m Model) View() string {
 	// 	fmt.Sprintf("Step %d/%d", int(m.step)+1, stepCount))
 
 	title := lipgloss.NewStyle().AlignHorizontal(lipgloss.Left).Width(m.width/3-1).Bold(true).Foreground(ui.Palette.Accent).Padding(0, 1).Render("Gitport")
-	currentStep := lipgloss.NewStyle().AlignHorizontal(lipgloss.Center).Width(m.width / 3).Foreground(ui.Palette.Fg).Render(stepAsString(m.step))
+	currentStep := lipgloss.NewStyle().AlignHorizontal(lipgloss.Center).Width(m.width / 3).Foreground(ui.Palette.Fg).Underline(true).Render(stepAsString(m.step))
 	progress := lipgloss.NewStyle().AlignHorizontal(lipgloss.Right).Width(m.width/3 - 1).Foreground(ui.Palette.FgMuted).Render(
 		fmt.Sprintf("%d/%d", int(m.step)+1, stepCount),
 	)
