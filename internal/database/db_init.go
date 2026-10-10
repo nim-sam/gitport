@@ -1,32 +1,44 @@
 package database
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-// Init DB
+// DB is the process-wide database handle. It is nil until Init runs, so any
+// caller must initialize the database before touching the repositories.
 var DB *gorm.DB
 
-// Creates .gitport folder if not present in the repo and opens an SQLite database
-func init() {
-	// 0700/0600 because the database stores user SSH public keys and emails.
-	// Existing paths are tightened too, since earlier versions created them 0755/0644.
-	if err := os.MkdirAll("./.gitport", 0700); err != nil {
-		panic(err)
+// Init creates the .gitport folder under root (if absent) and opens the SQLite
+// database stored inside it, leaving the handle in DB.
+//
+// Permission bits are 0700/0600 because the database stores user SSH public
+// keys and emails. Existing paths are tightened too, since earlier versions
+// created them 0755/0644.
+func Init(root string) error {
+	dir := filepath.Join(root, ".gitport")
+
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return fmt.Errorf("could not create %s: %w", dir, err)
 	}
-	if err := os.Chmod("./.gitport", 0700); err != nil {
-		panic(err)
+	if err := os.Chmod(dir, 0700); err != nil {
+		return fmt.Errorf("could not secure %s: %w", dir, err)
 	}
 
-	out, err := gorm.Open(sqlite.Open("./.gitport/gitport.db"), &gorm.Config{})
+	dbPath := filepath.Join(dir, "gitport.db")
+
+	out, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("could not open database: %w", err)
 	}
-	if err := os.Chmod("./.gitport/gitport.db", 0600); err != nil {
-		panic(err)
+	if err := os.Chmod(dbPath, 0600); err != nil {
+		return fmt.Errorf("could not secure %s: %w", dbPath, err)
 	}
+
 	DB = out
+	return nil
 }
