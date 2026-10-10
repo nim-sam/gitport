@@ -189,12 +189,17 @@ func (m Model) review() string {
 		name = "(repository name)"
 	}
 
+	var strippedKey string
+	if len(admin.SshKey) > m.width-25 {
+		strippedKey = admin.SshKey[:m.width-25] + "…"
+	}
+
 	return lipgloss.JoinVertical(lipgloss.Left,
 		row("Display name", name),
 		row("Bind address", fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)),
 		row("Admin", admin.Name),
 		row("Email", admin.Email),
-		row("SSH Key", admin.SshKey[:m.width-25]+"…"),
+		row("SSH Key", strippedKey),
 	)
 }
 
