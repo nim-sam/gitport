@@ -79,8 +79,18 @@ func startHandler(_ []string) error {
 // runChain performs the startup sequence the status TUI used to drive, pushing
 // state into the UI as it progresses.
 func runChain(ctx context.Context, root string, s server.Server, prog *tea.Program) {
-	if err := database.Init(root); err != nil {
+	// stop broadcasts a real failure through the logger (which reaches the TUI
+	// log viewport) and reports the terminal state to the model. A nil err is a
+	// clean shutdown, which stays silent.
+	stop := func(err error) {
+		if err != nil {
+			logger.Error("server stopped", "err", err)
+		}
 		prog.Send(serverstatus.StoppedMsg{Err: err})
+	}
+
+	if err := database.Init(root); err != nil {
+		stop(err)
 		return
 	}
 	repository.Migrate()
@@ -95,9 +105,9 @@ func runChain(ctx context.Context, root string, s server.Server, prog *tea.Progr
 	case <-s.Ready:
 		prog.Send(serverstatus.RunningMsg{})
 	case err := <-done:
-		prog.Send(serverstatus.StoppedMsg{Err: err})
+		stop(err)
 		return
 	}
 
-	prog.Send(serverstatus.StoppedMsg{Err: <-done})
+	stop(<-done)
 }
