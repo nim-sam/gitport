@@ -1,7 +1,6 @@
 package server
 
 import (
-	// "io"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -11,14 +10,10 @@ import (
 	"github.com/nim-sam/gitport/internal/repository"
 )
 
-// Syncs the git history into the commits table at process start so that
-// sessions and selection changes never have to walk git or recompute patches.
-// Runs from init(), after the database, repository migrations and the package
-// level Server singleton have been initialized.
-func init() {
-	GitportServer.InitCommits()
-}
-
+// InitCommits syncs the git history into the commits table. It is called by
+// `gitport start` once the database is open, so that sessions and selection
+// changes never have to walk git or recompute patches.
+//
 // Stores every commit reachable from HEAD in the database together with its
 // diff. When the table already holds records only the missing commits are
 // inserted, and records whose Diff is empty (e.g. rows created before the
@@ -51,15 +46,15 @@ func (s Server) InitCommits() {
 }
 
 // Fetches <limit>th most recent commits from git server and returns
-// commit array
+// commit array. A repository without a git history, or without a git
+// repository at all, yields an empty slice rather than an error.
 func (s Server) LoadCommits(limit int) []model.Commit {
 
-	repo, err := git.PlainOpen(s.Root)
-	if err != nil {
-		panic(err)
+	if s.Repo == nil {
+		return make([]model.Commit, 0)
 	}
 
-	ref, err := repo.Head()
+	ref, err := s.Repo.Head()
 	if err != nil {
 		// If there is no head, i.e empty Repo, return empty commit array
 		return make([]model.Commit, 0)
@@ -68,18 +63,13 @@ func (s Server) LoadCommits(limit int) []model.Commit {
 	// Iterate through repo commits and return commit array. Committer-time
 	// order matches git log; the default depth-first traversal interleaves
 	// merged branches and yields commits out of date order.
-	commitIter, err := repo.Log(&git.LogOptions{From: ref.Hash(), Order: git.LogOrderCommitterTime})
+	commitIter, err := s.Repo.Log(&git.LogOptions{From: ref.Hash(), Order: git.LogOrderCommitterTime})
 	if err != nil {
-		panic(err)
+		return make([]model.Commit, 0)
 	}
 
 	var out []model.Commit
-	// count := 0
 	err = commitIter.ForEach(func(c *object.Commit) error {
-		// if count >= limit {
-		// 	return io.EOF
-		// }
-
 		message := strings.TrimSpace(c.Message)
 
 		out = append(out,
@@ -89,7 +79,6 @@ func (s Server) LoadCommits(limit int) []model.Commit {
 				Message: message,
 				Date:    c.Author.When.Format(model.DateLayout),
 			})
-		// count++
 		return nil
 	})
 
@@ -101,10 +90,14 @@ func (s Server) LoadCommits(limit int) []model.Commit {
 // on model.Commit.Diff, and the UI renders that stored value rather than
 // calling this on selection changes.
 func (s Server) GetCommitDiff(hash string) string {
+	if s.Repo == nil {
+		return ""
+	}
+
 	h := plumbing.NewHash(hash)
 	commit, err := s.Repo.CommitObject(h)
 	if err != nil {
-		panic(err)
+		return ""
 	}
 
 	parent, err := commit.Parent(0)
