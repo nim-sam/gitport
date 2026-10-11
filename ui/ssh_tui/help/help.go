@@ -12,13 +12,30 @@ type Model struct {
 	lastKey string
 	Width   int
 	Height  int
+
+	// admin gates the full help view. Non-admins only get the short help bar:
+	// the user-management bindings and the "?" toggle are removed entirely.
+	admin bool
 }
 
-func New() Model {
+// New builds the help model. When admin is false the user-management
+// keybindings and the help toggle are disabled so they never appear; the
+// package-level keys are copied first so disabling never leaks across sessions.
+func New(admin bool) Model {
+	k := keys
+
+	if !admin {
+		k.NewUser.SetEnabled(false)
+		k.EditUser.SetEnabled(false)
+		k.DeleteUser.SetEnabled(false)
+		k.Help.SetEnabled(false)
+	}
+
 	return Model{
-		keys:   keys,
+		keys:   k,
 		help:   help.New(),
 		Height: 2,
+		admin:  admin,
 	}
 }
 
@@ -48,7 +65,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case "enter":
 			m.lastKey = "enter"
 		case "?":
-			m.help.ShowAll = !m.help.ShowAll
+			if m.admin {
+				m.help.ShowAll = !m.help.ShowAll
+			}
 		}
 	}
 
@@ -56,6 +75,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
+
+	// Non-admins have no full help view, so never render it even if the help
+	// model was left in the expanded state.
+	if !m.admin {
+		m.help.ShowAll = false
+	}
 
 	helpContainer := lipgloss.NewStyle().Width(m.Width).Height(m.Height).AlignHorizontal(lipgloss.Center)
 
