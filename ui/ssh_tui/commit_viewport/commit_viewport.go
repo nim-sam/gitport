@@ -121,7 +121,7 @@ func (m Model) View() string {
 	diffTitle := "[" + m.commitHashShort + "] " + m.commitMsg
 
 	if len(diffTitle) > m.width {
-		diffTitle = diffTitle[:m.width-5]
+		diffTitle = diffTitle[:m.width-11]
 		diffTitle += "…"
 	}
 
