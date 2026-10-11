@@ -46,7 +46,7 @@ func startHandler(_ []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	info := serverstatus.Info{Name: s.Name, Root: s.Root, Host: s.Host, Port: s.Port}
+	info := serverstatus.Info{Name: s.Name, Root: s.Root, Host: s.Host, Port: s.Port, Clone: s.CloneAddress()}
 	statusModel := serverstatus.New(info, 70, 10)
 
 	prog := tea.NewProgram(statusModel)
@@ -94,6 +94,10 @@ func runChain(ctx context.Context, root string, s server.Server, prog *tea.Progr
 		return
 	}
 	repository.Migrate()
+	if err := s.PrepareGit(); err != nil {
+		stop(err)
+		return
+	}
 	s.InitCommits()
 
 	done := make(chan error, 1)
