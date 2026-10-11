@@ -78,6 +78,11 @@ type Model struct {
 	focus        dashboardFocus
 	tab          tabFocus
 
+	// The user whose key authorized this session. Only its ID is trusted; the
+	// current access level is re-read from the database on every gated action
+	// so demotions and deletions take effect without a reconnect.
+	currentUser model.User
+
 	// Panel widths
 	leftWidth  int
 	rightWidth int
@@ -124,7 +129,7 @@ const (
 // Each commit carries its diff, so the commit viewport renders straight from
 // the commit in the selection message rather than resolving hashes through an
 // injected lookup.
-func New(users []model.User, commits []model.Commit, logs []model.Log, width, height int) Model {
+func New(users []model.User, commits []model.Commit, logs []model.Log, width, height int, current model.User) Model {
 
 	nav := navigator.New()
 	nav.Title = "GitPort"
@@ -142,7 +147,7 @@ func New(users []model.User, commits []model.Commit, logs []model.Log, width, he
 
 	sl := serverlogs.New(logs)
 
-	h := help.New()
+	h := help.New(current.AccessLevel == model.Admin)
 
 	v := commitviewport.New()
 
@@ -157,6 +162,7 @@ func New(users []model.User, commits []model.Commit, logs []model.Log, width, he
 		userModificationForm:      umf,
 		confirmUserDeletionDialog: dia,
 		help:                      h,
+		currentUser:               current,
 	}
 
 	// Lay the dashboard out immediately so the very first frame is sized
@@ -225,6 +231,22 @@ func (m *Model) resize(width, height int) {
 	m.help.Width = m.innerWidth
 }
 
+// isAdmin reports whether the authenticated user currently holds the Admin
+// access level. The level is re-read from the database on every call so a
+// change made through another session takes effect immediately, and an
+// unresolvable user (deleted, or no key) is denied.
+func (m Model) isAdmin() bool {
+	if m.currentUser.ID == 0 {
+		return false
+	}
+	for _, u := range repository.UserRepo.Load() {
+		if u.ID == m.currentUser.ID {
+			return u.AccessLevel == model.Admin
+		}
+	}
+	return false
+}
+
 // Model's Model implementation
 
 func (m Model) Init() tea.Cmd {
@@ -249,54 +271,60 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		// CREATE RESOURCE
 		case "ctrl+n":
-			switch m.tab {
-			// Handling User Creation
-			case userManagement:
-				switch m.state {
-				case CreateState:
-					m.state = DefaultState
-					m.focus = leftPanel
-					m.userCreationForm.ClearInputs()
-				case DefaultState:
-					m.state = CreateState
+			if m.isAdmin() {
+				switch m.tab {
+				// Handling User Creation
+				case userManagement:
+					switch m.state {
+					case CreateState:
+						m.state = DefaultState
+						m.focus = leftPanel
+						m.userCreationForm.ClearInputs()
+					case DefaultState:
+						m.state = CreateState
+					}
 				}
 			}
 		// EDIT RESOURCE
 		case "ctrl+e":
-			switch m.tab {
-			// Handling User Information Modifications
-			case userManagement:
-				switch m.state {
-				case EditState:
-					m.state = DefaultState
-					m.focus = leftPanel
-					m.userModificationForm.ClearInputs()
-				case DefaultState:
-					m.state = EditState
-					m.userModificationForm.ResetSelection()
+			if m.isAdmin() {
+				switch m.tab {
+				// Handling User Information Modifications
+				case userManagement:
+					switch m.state {
+					case EditState:
+						m.state = DefaultState
+						m.focus = leftPanel
+						m.userModificationForm.ClearInputs()
+					case DefaultState:
+						m.state = EditState
+						m.userModificationForm.ResetSelection()
 
-					// Fetch currently selected user and populate data in pop-up
-					currentUser := m.userList.GetSelectedUser()
-					m.userModificationForm.SetUserFields(currentUser)
+						// Fetch currently selected user and populate data in pop-up
+						currentUser := m.userList.GetSelectedUser()
+						m.userModificationForm.SetUserFields(currentUser)
+					}
 				}
 			}
 		// DELETE RESOURCE
 		case "ctrl+d":
-			switch m.tab {
-			case userManagement:
-				switch m.state {
-				case DefaultState:
+			if m.isAdmin() {
+				switch m.tab {
+				case userManagement:
+					switch m.state {
+					case DefaultState:
 
-					m.state = DeleteState
-					user := m.userList.GetSelectedUser()
+						m.state = DeleteState
+						user := m.userList.GetSelectedUser()
 
-					// Set dialog data catered for user deletion
-					m.confirmUserDeletionDialog.ResetSelection()
-					m.confirmUserDeletionDialog.Title = "Delete User"
-					m.confirmUserDeletionDialog.Prompt = fmt.Sprintf("Are you sure you want to delete %s?", user.Name)
-					m.confirmUserDeletionDialog.ConfirmMsg = "[ Confirm ]"
-					m.confirmUserDeletionDialog.CancelMsg = "[ Cancel ]"
+						// Set dialog data catered for user deletion
+						m.confirmUserDeletionDialog.ResetSelection()
+						m.confirmUserDeletionDialog.Title = "Delete User"
+						m.confirmUserDeletionDialog.Prompt = fmt.Sprintf("Are you sure you want to delete %s?", user.Name)
+						m.confirmUserDeletionDialog.ConfirmMsg = "[ Confirm ]"
+						m.confirmUserDeletionDialog.CancelMsg = "[ Cancel ]"
 
+					}
 				}
 			}
 		case "esc":
@@ -335,7 +363,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	// Handles user deletion dialog
 	case dialog.SelectionMsg:
-		if msg.Confirm && m.state == DeleteState {
+		if msg.Confirm && m.state == DeleteState && m.isAdmin() {
 			// Fetches selected user, deletes user from data base,
 			// updates user list model
 			user := m.userList.GetSelectedUser()
@@ -352,33 +380,35 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	// Handles user creation/modification forms
 	case form.UserFormConfirmationMsg:
-		switch m.state {
-		case CreateState:
-			// Save user and reload users from database
-			newUser := msg.GetUser()
-			repository.UserRepo.Save(newUser)
-			m.userList.UpdateUsers(repository.UserRepo.Load())
+		if m.isAdmin() {
+			switch m.state {
+			case CreateState:
+				// Save user and reload users from database
+				newUser := msg.GetUser()
+				repository.UserRepo.Save(newUser)
+				m.userList.UpdateUsers(repository.UserRepo.Load())
 
-			// Clear inupts, reset selection
-			m.userCreationForm.ClearInputs()
-			m.userCreationForm.ResetSelection()
+				// Clear inupts, reset selection
+				m.userCreationForm.ClearInputs()
+				m.userCreationForm.ResetSelection()
 
-			// Return to default state
-			m.state = DefaultState
-			m.focus = leftPanel
-		case EditState:
-			// Updates fields of currently selected user and reload
-			// users from database
-			currentUser := m.userList.GetSelectedUser()
-			userID := currentUser.ID
-			updatedUser := msg.GetUser()
-			updatedUser.ID = userID
-			repository.UserRepo.Save(updatedUser)
-			m.userList.UpdateUsers(repository.UserRepo.Load())
+				// Return to default state
+				m.state = DefaultState
+				m.focus = leftPanel
+			case EditState:
+				// Updates fields of currently selected user and reload
+				// users from database
+				currentUser := m.userList.GetSelectedUser()
+				userID := currentUser.ID
+				updatedUser := msg.GetUser()
+				updatedUser.ID = userID
+				repository.UserRepo.Save(updatedUser)
+				m.userList.UpdateUsers(repository.UserRepo.Load())
 
-			// Return to default state
-			m.state = DefaultState
-			m.focus = leftPanel
+				// Return to default state
+				m.state = DefaultState
+				m.focus = leftPanel
+			}
 		}
 	}
 
