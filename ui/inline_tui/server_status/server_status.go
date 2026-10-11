@@ -41,10 +41,11 @@ const (
 // Info is the static, display-only information the header renders. It is
 // computed by the caller so this model stays decoupled from the server.
 type Info struct {
-	Name string
-	Root string
-	Host string
-	Port string
+	Name  string
+	Root  string
+	Host  string
+	Port  string
+	Clone string
 }
 
 // Model is the server status TUI's bubbletea model.
@@ -126,6 +127,7 @@ func (m Model) View() string {
 			m.meta("alias", m.alias()),
 			m.meta("address", m.address()),
 			m.meta("connect", m.connect()),
+			m.meta("clone", m.clone()),
 			m.meta("status", statusStyle.Render(statusLabel(m.status))),
 		),
 	)
@@ -207,6 +209,15 @@ func (m Model) connect() string {
 		return "ssh " + m.alias()
 	}
 	return fmt.Sprintf("ssh -p %s %s", port, m.alias())
+}
+
+// clone renders the git clone address supplied by the caller. It is prebuilt
+// (rather than derived here) so the name-sanitizing rules stay in one place.
+func (m Model) clone() string {
+	if m.info.Clone == "" {
+		return "-"
+	}
+	return m.info.Clone
 }
 
 // New creates the server status model. It is a pure view over info; the caller
