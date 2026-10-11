@@ -74,3 +74,14 @@ func (r Repository[D]) Delete(ID uint) {
 		panic(err)
 	}
 }
+
+// Clear removes every record of type DAO in a single statement. The explicit
+// condition keeps GORM's global-update guard satisfied. Used to rebuild a cache
+// from scratch, e.g. the commit history after a push.
+func (r Repository[D]) Clear() {
+	var zero D
+	result := r.DB.Where("1 = 1").Delete(&zero)
+	if err := result.Error; err != nil {
+		panic(err)
+	}
+}
