@@ -23,12 +23,14 @@ func (i userItem) Description() string {
 
 	var accessLevelDisplay string
 	switch i.accessLevel {
-	case 0:
+	case model.ReadOnly:
 		accessLevelDisplay = "(Read)"
-	case 1:
+	case model.ReadWrite:
 		accessLevelDisplay = "(Write)"
-	case 2:
+	case model.Admin:
 		accessLevelDisplay = "(Admin)"
+	case model.Owner:
+		accessLevelDisplay = "(Owner)"
 	}
 
 	return fmt.Sprintf("%s %s", accessLevelDisplay, i.sshKey)

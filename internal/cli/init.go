@@ -54,10 +54,12 @@ func initHandler(_ []string) error {
 	}
 	repository.Migrate()
 
-	// The wizard always creates exactly one admin account, regardless of the
-	// selected access level, so the configuration is guaranteed to be usable.
+	// The wizard always creates exactly one account, which becomes the server
+	// Owner regardless of the selected access level, so the configuration is
+	// guaranteed to be usable and the Owner role is never assignable through
+	// the dashboard.
 	admin := result.GetAdmin()
-	admin.AccessLevel = model.Admin
+	admin.AccessLevel = model.Owner
 	repository.UserRepo.Save(admin)
 
 	fmt.Printf("Initialized %s\n", config.Dir(root))

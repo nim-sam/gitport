@@ -20,6 +20,12 @@ type Model struct {
 	Height        int
 	buttonMsg     string
 	title         string
+
+	// accessLocked pins the Access selector. It is used when the Owner edits
+	// their own record, whose access level may never change; lockedAccess is the
+	// value submitted in that case.
+	accessLocked bool
+	lockedAccess model.AccessLevel
 }
 
 func (m Model) Init() tea.Cmd {
@@ -40,7 +46,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
-			m.selectedInput = (m.selectedInput + 1) % (len(m.Inputs) + 2)
+			m.selectedInput = m.nextFocusIndex()
 		case "enter":
 			// Pass UserFormConfirmationMsg if "enter" is pressed
 			// while the confirm/submit button is selected
@@ -50,7 +56,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 					Name:        m.Inputs[0].Value(),
 					Email:       m.Inputs[1].Value(),
 					SshKey:      m.Inputs[2].Value(),
-					AccessLevel: model.AccessLevel(m.Selector.SelectedItem),
+					AccessLevel: m.selectedAccess(),
 				}
 
 				cmd := func() tea.Msg { return UserFormConfirmationMsg{user: user} }
@@ -68,7 +74,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 
-	if m.selectedInput == 3 {
+	if m.selectedInput == len(m.Inputs) && !m.accessLocked {
 		m.Selector.Focused = true
 	} else {
 		m.Selector.Focused = false
@@ -79,8 +85,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.Inputs[i], _ = m.Inputs[i].Update(msg)
 	}
 
-	// Update selector selection
-	m.Selector, _ = m.Selector.Update(msg)
+	// Update selector selection, unless it is locked
+	if !m.accessLocked {
+		m.Selector, _ = m.Selector.Update(msg)
+	}
 
 	return m, tea.Batch(cmds...)
 }
@@ -131,7 +139,7 @@ func (m Model) View() string {
 	blurredSelector := lipgloss.NewStyle().Foreground(ui.Palette.FgMuted).Italic(true)
 
 	var Selector lipgloss.Style
-	if m.selectedInput == len(m.Inputs) {
+	if m.selectedInput == len(m.Inputs) && !m.accessLocked {
 		Selector = focusedSelector
 	} else {
 		Selector = blurredSelector
@@ -142,6 +150,13 @@ func (m Model) View() string {
 	// Styling Selector and text input prompt
 	formPromptStyle := lipgloss.NewStyle().Bold(true).Foreground(ui.Palette.FgHighlight)
 	m.Selector.Styles.Prompt = formPromptStyle
+
+	// The Access row renders as static text when locked, so the Owner cannot
+	// cycle their own access level.
+	accessView := m.Selector.View()
+	if m.accessLocked {
+		accessView = blurredSelector.Render(accessLevelLabel(m.lockedAccess))
+	}
 
 	for i, _ := range m.Inputs {
 		m.Inputs[i].PromptStyle = formPromptStyle
@@ -169,7 +184,7 @@ func (m Model) View() string {
 				inputsContainer.Render(
 					lipgloss.JoinVertical(lipgloss.Top,
 						strings.Join(formFieldsView, "\n"),
-						m.Selector.View(),
+						accessView,
 					),
 				),
 			),
@@ -183,7 +198,54 @@ func (m *Model) SetUserFields(u model.User) {
 	m.Inputs[0].SetValue(u.Name)
 	m.Inputs[1].SetValue(u.Email)
 	m.Inputs[2].SetValue(u.SshKey)
-	m.Selector.SetValue(int(u.AccessLevel))
+
+	// The selector only carries the assignable levels; the Owner level is not
+	// selectable in the dashboard, so leave the selector untouched for it.
+	if u.AccessLevel <= model.Admin {
+		m.Selector.SetValue(int(u.AccessLevel))
+	}
+}
+
+// SetAccessLocked pins the Access selector to level when locked, preventing the
+// user from changing it. Pass locked=false to restore normal selection.
+func (m *Model) SetAccessLocked(locked bool, level model.AccessLevel) {
+	m.accessLocked = locked
+	m.lockedAccess = level
+}
+
+// nextFocusIndex advances the focused field, skipping the Access selector while
+// it is locked.
+func (m Model) nextFocusIndex() int {
+	count := len(m.Inputs) + 2 // inputs + Access selector + submit button
+	next := (m.selectedInput + 1) % count
+	if m.accessLocked && next == len(m.Inputs) {
+		next = (next + 1) % count
+	}
+	return next
+}
+
+// selectedAccess returns the access level the form will submit, honouring the
+// lock applied to the Owner's own record.
+func (m Model) selectedAccess() model.AccessLevel {
+	if m.accessLocked {
+		return m.lockedAccess
+	}
+	return model.AccessLevel(m.Selector.SelectedItem)
+}
+
+// accessLevelLabel renders an access level the way the selector does.
+func accessLevelLabel(level model.AccessLevel) string {
+	switch level {
+	case model.ReadOnly:
+		return "ReadOnly"
+	case model.ReadWrite:
+		return "ReadWrite"
+	case model.Admin:
+		return "Admin"
+	case model.Owner:
+		return "Owner"
+	}
+	return ""
 }
 
 // Returns true if the form's confirm/submit button is selected
