@@ -39,8 +39,17 @@ func (m *Model) UpdateUsers(users []model.User) {
 	// Converting <users> list to list.Item list
 	var userList []list.Item
 	for _, user := range users {
+
+		var strippedSshKey string
+		if len(user.SshKey) > 30 {
+			strippedSshKey = user.SshKey[:30]
+			strippedSshKey += "…"
+		} else {
+			strippedSshKey = user.SshKey
+		}
+
 		userList = append(userList, userItem{
-			sshKey:      user.SshKey,
+			sshKey:      strippedSshKey,
 			name:        user.Name,
 			email:       user.Email,
 			accessLevel: user.AccessLevel,
