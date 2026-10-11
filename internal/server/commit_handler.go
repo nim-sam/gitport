@@ -19,12 +19,36 @@ import (
 // inserted, and records whose Diff is empty (e.g. rows created before the
 // column existed) get their diff backfilled.
 func (s Server) InitCommits() {
+	s.syncCommits(s.Repo)
+}
+
+// RefreshCommits rebuilds the commits table from the served (bare) repository.
+// It is called after a successful push: the table is cleared first so history
+// that was rewritten (force push) does not leave unreachable rows behind, then
+// re-populated from the current HEAD.
+func (s Server) RefreshCommits() {
+	repo, err := git.PlainOpen(s.bareRepoPath())
+	if err != nil {
+		return
+	}
+	repository.CommitRepo.Clear()
+	s.syncCommits(repo)
+}
+
+// syncCommits is the shared core of InitCommits and RefreshCommits: it walks
+// the commits reachable from repo's HEAD and upserts any that are new or whose
+// cached diff is missing.
+func (s Server) syncCommits(repo *git.Repository) {
+	if repo == nil {
+		return
+	}
+
 	byHash := make(map[string]model.Commit)
 	for _, rec := range repository.CommitRepo.Load() {
 		byHash[rec.Hash] = rec
 	}
 
-	gitCommits := s.LoadCommits(commitLimit)
+	gitCommits := loadCommits(repo, commitLimit)
 
 	// Iterate oldest first so row ids ascend with commit order; the UI reads
 	// commits back with id DESC, which then matches git log order even after
@@ -34,27 +58,28 @@ func (s Server) InitCommits() {
 
 		if rec, ok := byHash[c.Hash]; ok {
 			if rec.Diff == "" {
-				rec.Diff = s.GetCommitDiff(c.Hash)
+				rec.Diff = commitDiff(repo, c.Hash)
 				repository.CommitRepo.Save(rec)
 			}
 			continue
 		}
 
-		c.Diff = s.GetCommitDiff(c.Hash)
+		c.Diff = commitDiff(repo, c.Hash)
 		repository.CommitRepo.Save(c)
 	}
 }
 
-// Fetches <limit>th most recent commits from git server and returns
-// commit array. A repository without a git history, or without a git
-// repository at all, yields an empty slice rather than an error.
-func (s Server) LoadCommits(limit int) []model.Commit {
+// loadCommits fetches the <limit> most recent commits from the given git
+// repository and returns a commit array. A repository without a git history,
+// or without a git repository at all, yields an empty slice rather than an
+// error.
+func loadCommits(repo *git.Repository, limit int) []model.Commit {
 
-	if s.Repo == nil {
+	if repo == nil {
 		return make([]model.Commit, 0)
 	}
 
-	ref, err := s.Repo.Head()
+	ref, err := repo.Head()
 	if err != nil {
 		// If there is no head, i.e empty Repo, return empty commit array
 		return make([]model.Commit, 0)
@@ -63,7 +88,7 @@ func (s Server) LoadCommits(limit int) []model.Commit {
 	// Iterate through repo commits and return commit array. Committer-time
 	// order matches git log; the default depth-first traversal interleaves
 	// merged branches and yields commits out of date order.
-	commitIter, err := s.Repo.Log(&git.LogOptions{From: ref.Hash(), Order: git.LogOrderCommitterTime})
+	commitIter, err := repo.Log(&git.LogOptions{From: ref.Hash(), Order: git.LogOrderCommitterTime})
 	if err != nil {
 		return make([]model.Commit, 0)
 	}
@@ -85,17 +110,17 @@ func (s Server) LoadCommits(limit int) []model.Commit {
 	return out
 }
 
-// Computes the unified diff of the commit with hash <hash> straight from git.
-// It is the producer half of the commit cache: InitCommits stores its result
-// on model.Commit.Diff, and the UI renders that stored value rather than
+// commitDiff computes the unified diff of the commit with hash <hash> straight
+// from git. It is the producer half of the commit cache: syncCommits stores its
+// result on model.Commit.Diff, and the UI renders that stored value rather than
 // calling this on selection changes.
-func (s Server) GetCommitDiff(hash string) string {
-	if s.Repo == nil {
+func commitDiff(repo *git.Repository, hash string) string {
+	if repo == nil {
 		return ""
 	}
 
 	h := plumbing.NewHash(hash)
-	commit, err := s.Repo.CommitObject(h)
+	commit, err := repo.CommitObject(h)
 	if err != nil {
 		return ""
 	}
