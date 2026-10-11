@@ -14,6 +14,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 
 	"github.com/nim-sam/gitport/internal/config"
+	"github.com/nim-sam/gitport/internal/logger"
 	"github.com/nim-sam/gitport/internal/model"
 	"github.com/nim-sam/gitport/internal/util"
 )
@@ -238,24 +239,41 @@ func (s Server) gitMiddleware() wish.Middleware {
 				access = accessFor(user.AccessLevel)
 			}
 			if access == gitwish.NoAccess {
+				logger.Warn("git access denied", "user", userName(user, ok), "repo", s.Name, "op", sub)
 				gitwish.Fatal(sess, gitwish.ErrNotAuthed)
 				return
 			}
 			if sub == "git-receive-pack" && access < gitwish.ReadWriteAccess {
+				logger.Warn("git access denied", "user", userName(user, ok), "repo", s.Name, "op", sub)
 				gitwish.Fatal(sess, gitwish.ErrNotAuthed)
 				return
 			}
 
 			if err := runGit(sess, s.bareRepoPath(), sub); err != nil {
+				logger.Error("git command failed", "user", userName(user, ok), "repo", s.Name, "op", sub, "err", err)
 				gitwish.Fatal(sess, gitwish.ErrSystemMalfunction)
 				return
 			}
 
 			if sub == "git-receive-pack" {
+				logger.Info("git push", "user", userName(user, ok), "repo", s.Name)
 				s.afterPush()
+			} else {
+				// git-upload-pack covers both clone and pull; the wire command
+				// does not distinguish them.
+				logger.Info("git fetch (clone/pull)", "user", userName(user, ok), "repo", s.Name)
 			}
 		}
 	}
+}
+
+// userName returns the display name of a resolved user, or "unknown" when the
+// session's key could not be matched to an account.
+func userName(u model.User, ok bool) string {
+	if !ok || u.Name == "" {
+		return "unknown"
+	}
+	return u.Name
 }
 
 // runGit executes a git server subcommand against dir, wiring the session's

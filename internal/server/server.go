@@ -181,6 +181,7 @@ func (s Server) Run(ctx context.Context) error {
 	logger.Info("Starting GitPort server",
 		"listen", address,
 		"connect", connect,
+		"clone", s.CloneAddress(),
 		"host_key", hostKeyPath,
 	)
 
@@ -237,7 +238,8 @@ func (s Server) dashboardHandler(sess ssh.Session) (tea.Model, []tea.ProgramOpti
 	// The authorized user drives what the dashboard lets this session do. When
 	// the key cannot be resolved, the zero user is passed so the dashboard fails
 	// closed to read-only.
-	current, _ := s.authenticatedUser(sess)
+	current, ok := s.authenticatedUser(sess)
+	logger.Info("ssh session opened", "user", userName(current, ok))
 
 	d := dashboard.New(users, commits, logs, width, height, current)
 
