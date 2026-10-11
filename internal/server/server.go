@@ -150,6 +150,7 @@ func (s Server) Run(ctx context.Context) error {
 		wish.WithMiddleware(
 			wishbubbletea.Middleware(s.dashboardHandler),
 			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.
+			s.gitMiddleware(),       // Serve git over the same endpoint; non-git sessions fall through to the TUI.
 			logging.Middleware(),
 			recover.Middleware(), // Keep a panicking session from taking the server down.
 		),
