@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/nim-sam/gitport/ui"
 	commithistory "github.com/nim-sam/gitport/ui/ssh_tui/commit_history"
 )
@@ -98,9 +99,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		m.viewport.SetYOffset(m.offset[m.selectedCommitHash])
 
-		// Setting commit display values
+		// Setting commit display values. Only the subject line is used so a
+		// multi-line message (subject + body) cannot push the title out of the
+		// viewport or dodge truncation.
 		m.commitHashShort = shortHash(commit.Hash)
-		m.commitMsg = commit.Message
+		m.commitMsg = subject(commit.Message)
 	}
 
 	if m.focused {
@@ -118,12 +121,7 @@ func (m Model) View() string {
 		Width(m.width).
 		Padding(0, 1)
 
-	diffTitle := "[" + m.commitHashShort + "] " + m.commitMsg
-
-	if len(diffTitle) > m.width {
-		diffTitle = diffTitle[:m.width-11]
-		diffTitle += "…"
-	}
+	diffTitle := truncateTitle("["+m.commitHashShort+"] "+m.commitMsg, m.width-2)
 
 	diffTitleRender := lipgloss.NewStyle().
 		Width(m.width-2).
@@ -150,6 +148,25 @@ func (m Model) View() string {
 // Width and height setters
 func (m *Model) Width(w int) *Model  { m.width = w; return m }
 func (m *Model) Height(h int) *Model { m.height = h; return m }
+
+// subject returns the first line of a commit message. go-git stores the whole
+// message (subject plus optional body) on a single string, so anything that
+// renders it as a title has to take the subject explicitly.
+func subject(message string) string {
+	subject, _, _ := strings.Cut(message, "\n")
+	return strings.TrimSpace(subject)
+}
+
+// truncateTitle clips title to width display cells, appending an ellipsis when
+// it is too long. Truncation is done by rendered width (not bytes) so wide
+// runes and ANSI escapes are measured correctly, and the ellipsis is counted
+// inside width by ansi.Truncate.
+func truncateTitle(title string, width int) string {
+	if width <= 0 {
+		return title
+	}
+	return ansi.Truncate(title, width, "…")
+}
 
 // shortHash returns the abbreviated hash shown in the viewport title. The
 // zero commit of an empty repository has an empty hash, so shorter inputs are
