@@ -233,7 +233,12 @@ func (s Server) dashboardHandler(sess ssh.Session) (tea.Model, []tea.ProgramOpti
 	commits := repository.LoadCommitsNewestFirst()
 	logs := repository.LogRepo.Load()
 
-	d := dashboard.New(users, commits, logs, width, height)
+	// The authorized user drives what the dashboard lets this session do. When
+	// the key cannot be resolved, the zero user is passed so the dashboard fails
+	// closed to read-only.
+	current, _ := s.authenticatedUser(sess)
+
+	d := dashboard.New(users, commits, logs, width, height, current)
 
 	return d, []tea.ProgramOption{tea.WithAltScreen()}
 }
