@@ -1,4 +1,7 @@
-.PHONY: build init start
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+
+.PHONY: build init start install uninstall
 
 build:
 	go build -o bin/gitport/main cmd/gitport/main.go
@@ -8,3 +11,10 @@ init:
 
 start:
 	sudo ./bin/gitport/main start
+
+install: build
+	sudo install -Dm755 bin/gitport/main $(BINDIR)/gitport
+	sudo setcap 'cap_net_bind_service=+ep' $(BINDIR)/gitport
+
+uninstall:
+	sudo rm -f $(BINDIR)/gitport
