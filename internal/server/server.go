@@ -96,7 +96,7 @@ func (s Server) Start() error {
 
 // Run serves GitPort over ssh via Wish until ctx is cancelled or the listener
 // fails. The server is also announced on the local network via mDNS as
-// <repo>-gitport.local.
+// <repo>.local.
 //
 // Blocks until the listener exits or ctx is done, at which point in-flight
 // sessions are given shutdownTimeout to drain. Ready, when set, is closed after
@@ -126,15 +126,27 @@ func (s Server) Run(ctx context.Context) error {
 		announceIP = util.GetLocalIP()
 	}
 
-	// Announce <repo>-gitport.local. Failure is non-fatal: the server still
-	// works by IP. On error Announce returns a no-op cleanup, so the defer
+	// Announce <repo>.local. Failure is non-fatal: the server still works by
+	// IP. On error Announce returns no-op refresh/cleanup funcs, so the defer
 	// is safe either way.
-	dialHost, stopMDNS, err := mdns.Announce(s.Name, port, announceIP)
+	dialHost, refreshMDNS, stopMDNS, err := mdns.Announce(s.Name, port, announceIP)
 	if err != nil {
 		logger.Warn("mDNS announce failed, serving by IP only", "err", err)
 		dialHost = announceIP
+		refreshMDNS = func() {}
 	}
 	defer stopMDNS()
+
+	// Re-announce on every client connection. zeroconf never answers host
+	// lookups, so refreshing on activity (alongside the keepalive inside
+	// Announce) keeps the alias resolvable. It is added last so it runs before
+	// any other middleware and thus for git sessions as well as the TUI.
+	refreshOnConnect := func(next ssh.Handler) ssh.Handler {
+		return func(sess ssh.Session) {
+			refreshMDNS()
+			next(sess)
+		}
+	}
 
 	connect := "ssh " + dialHost
 	if port != "22" {
@@ -153,6 +165,7 @@ func (s Server) Run(ctx context.Context) error {
 			s.gitMiddleware(),       // Serve git over the same endpoint; non-git sessions fall through to the TUI.
 			logging.Middleware(),
 			recover.Middleware(), // Keep a panicking session from taking the server down.
+			refreshOnConnect,     // Re-announce mDNS for every inbound session.
 		),
 	)
 	if err != nil {
