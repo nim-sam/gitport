@@ -240,6 +240,9 @@ func (s Server) dashboardHandler(sess ssh.Session) (tea.Model, []tea.ProgramOpti
 	// closed to read-only.
 	current, ok := s.authenticatedUser(sess)
 	logger.Info("ssh session opened", "user", userName(current, ok))
+	if ok {
+		recordLogin(current)
+	}
 
 	d := dashboard.New(users, commits, logs, width, height, current)
 

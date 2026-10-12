@@ -74,12 +74,13 @@ func (s Server) CloneAddress() string {
 
 // accessFor maps a database access level onto the git server's repo access.
 // Owners, admins and read-write users may push; read-only users may only
-// clone/fetch; anything else is denied.
+// clone/fetch; anything else is denied. The capability gates live on the access
+// level itself so the dashboard permission matrix cannot drift from this.
 func accessFor(level model.AccessLevel) gitwish.AccessLevel {
-	switch level {
-	case model.Owner, model.Admin, model.ReadWrite:
+	switch {
+	case level.CanPush():
 		return gitwish.ReadWriteAccess
-	case model.ReadOnly:
+	case level.CanClone():
 		return gitwish.ReadOnlyAccess
 	default:
 		return gitwish.NoAccess
@@ -257,11 +258,17 @@ func (s Server) gitMiddleware() wish.Middleware {
 
 			if sub == "git-receive-pack" {
 				logger.Info("git push", "user", userName(user, ok), "repo", s.Name)
+				if ok {
+					recordPush(user)
+				}
 				s.afterPush()
 			} else {
 				// git-upload-pack covers both clone and pull; the wire command
 				// does not distinguish them.
 				logger.Info("git fetch (clone/pull)", "user", userName(user, ok), "repo", s.Name)
+				if ok {
+					recordFetch(user)
+				}
 			}
 		}
 	}
