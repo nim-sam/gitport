@@ -20,6 +20,11 @@ type Model struct {
 	Height        int
 	buttonMsg     string
 	title         string
+	errMsg        string
+
+	// requireAll rejects submission while any text field is empty. It is set
+	// for the creation form so a new user always has a name, email and key.
+	requireAll bool
 
 	// accessLocked pins the Access selector. It is used when the Owner edits
 	// their own record, whose access level may never change; lockedAccess is the
@@ -44,6 +49,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	// Handle keystrokes
 	case tea.KeyMsg:
+		// Any keystroke dismisses a previous validation error.
+		m.errMsg = ""
+
 		switch msg.String() {
 		case "tab":
 			m.selectedInput = m.nextFocusIndex()
@@ -51,6 +59,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			// Pass UserFormConfirmationMsg if "enter" is pressed
 			// while the confirm/submit button is selected
 			if m.confirmButtonSelected() {
+
+				if m.requireAll {
+					if err := m.missingFields(); err != "" {
+						m.errMsg = err
+						break
+					}
+				}
 
 				user := model.User{
 					Name:        m.Inputs[0].Value(),
@@ -168,6 +183,18 @@ func (m Model) View() string {
 	inputsContainer := lipgloss.NewStyle().Width(m.Width-8-promptStyle.GetWidth()).Height(3).Padding(0, 1)
 	buttonContainer := lipgloss.NewStyle().Width(m.Width).Height(3).Align(lipgloss.Center, lipgloss.Center)
 
+	// Submit button, with the validation error stacked above it when a
+	// required field is missing. Both lines share a width so they centre
+	// together within the button container.
+	buttonView := button.Render(m.buttonMsg)
+	if m.errMsg != "" {
+		lineStyle := lipgloss.NewStyle().Width(m.Width).AlignHorizontal(lipgloss.Center)
+		buttonView = lipgloss.JoinVertical(lipgloss.Top,
+			lineStyle.Foreground(ui.Palette.FgMuted).Italic(true).Render(m.errMsg),
+			lineStyle.Render(buttonView),
+		)
+	}
+
 	return lipgloss.JoinVertical(lipgloss.Top,
 		titleBar.Render(titleStyle.Render(m.title)),
 		composition.Render(
@@ -189,7 +216,7 @@ func (m Model) View() string {
 				),
 			),
 		),
-		buttonContainer.Render(button.Render(m.buttonMsg)),
+		buttonContainer.Render(buttonView),
 	)
 }
 
@@ -253,6 +280,25 @@ func (m Model) confirmButtonSelected() bool {
 	return m.selectedInput == len(m.Inputs)+1
 }
 
+// missingFields reports which required text fields are still empty, as a
+// human-readable message, or "" when all are populated. Whitespace-only input
+// counts as empty.
+func (m Model) missingFields() string {
+	labels := []string{"Username", "Email", "Ssh-key"}
+
+	var missing []string
+	for i, in := range m.Inputs {
+		if strings.TrimSpace(in.Value()) == "" {
+			missing = append(missing, labels[i])
+		}
+	}
+
+	if len(missing) == 0 {
+		return ""
+	}
+	return "Required: " + strings.Join(missing, ", ")
+}
+
 // Resets selection to first field of the form
 func (m *Model) ResetSelection() {
 	m.selectedInput = 0
@@ -263,10 +309,11 @@ func NewUserCreationFormModel() Model {
 	s := selector.New("ReadOnly", "ReadWrite", "Admin")
 
 	u := Model{
-		Inputs:    make([]textinput.Model, 3),
-		buttonMsg: "[ SUBMIT ]",
-		title:     "Create New User",
-		Selector:  s,
+		Inputs:     make([]textinput.Model, 3),
+		buttonMsg:  "[ SUBMIT ]",
+		title:      "Create New User",
+		Selector:   s,
+		requireAll: true,
 	}
 
 	for i := range u.Inputs {
