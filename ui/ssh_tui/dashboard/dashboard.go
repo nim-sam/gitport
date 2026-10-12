@@ -222,8 +222,8 @@ func (m *Model) resize(width, height int) {
 	m.rightWidth = m.innerWidth - m.leftWidth - 2
 
 	// commitViewport inherits dimensions from right panel
-	m.commitViewport.Height(m.innerHeight+2)
-	m.commitViewport.Width(m.rightWidth+2)
+	m.commitViewport.Height(m.innerHeight + 2)
+	m.commitViewport.Width(m.rightWidth + 2)
 
 	// UserDetail draws its own border, so it is sized to the panel's full outer
 	// dimensions rather than the inner content box.
