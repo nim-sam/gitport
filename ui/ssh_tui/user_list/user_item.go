@@ -9,6 +9,7 @@ import (
 // User Item definition
 
 type userItem struct {
+	id          uint
 	sshKey      string
 	name        string
 	email       string
