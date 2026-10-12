@@ -15,8 +15,8 @@ import (
 
 	"github.com/nim-sam/gitport/internal/config"
 	"github.com/nim-sam/gitport/internal/logger"
+	"github.com/nim-sam/gitport/internal/mdns"
 	"github.com/nim-sam/gitport/internal/model"
-	"github.com/nim-sam/gitport/internal/util"
 )
 
 // commitSyncMu serializes commit-table rebuilds. A Server value is copied
@@ -25,12 +25,13 @@ import (
 var commitSyncMu sync.Mutex
 
 // bareRepoName derives the served bare repository's directory name from the
-// server's repository name (the configured display name, or the root folder's
-// name when unset). Characters that are unsafe in a single path segment are
-// collapsed to hyphens, and the conventional .git suffix is guaranteed.
+// repository root folder's name. Characters that are unsafe in a single path
+// segment are collapsed to hyphens, and the conventional .git suffix is
+// guaranteed.
 func (s Server) bareRepoName() string {
 	var b strings.Builder
-	for _, r := range strings.TrimSpace(s.Name) {
+
+	for _, r := range strings.TrimSpace(filepath.Base(s.Root)) {
 		switch {
 		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9',
 			r == '-', r == '_', r == '.':
@@ -60,14 +61,20 @@ func (s Server) bareRepoPath() string {
 // CloneAddress is the git clone URL clients use to reach the served bare
 // repository over SSH. Authentication is by public key, so the user segment is
 // only a conventional placeholder; the path names the served repository.
+//
+// The host is the mDNS alias announced on the LAN, so no DNS setup is needed.
+// The conventional scp-like "git@host:path" form cannot carry a port, so it is
+// used only on the standard SSH port; otherwise the explicit ssh:// form is
+// returned.
 func (s Server) CloneAddress() string {
-	host := s.Host
-	if host == "" || host == defaultHost {
-		host = util.GetLocalIP()
-	}
+	host := mdns.Label(s.Name) + ".local"
+
 	port := s.Port
 	if port == "" {
 		port = defaultPort
+	}
+	if port == "22" {
+		return fmt.Sprintf("git clone git@%s:%s", host, s.bareRepoName())
 	}
 	return fmt.Sprintf("git clone ssh://git@%s:%s/%s", host, port, s.bareRepoName())
 }
