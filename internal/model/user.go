@@ -22,6 +22,25 @@ func (a AccessLevel) CanManage() bool {
 	return a >= Admin
 }
 
+// CanClone reports whether the level is allowed to read the served repository
+// by cloning. Every defined level may; it exists so the dashboard permission
+// matrix and the git access mapping share one source of truth.
+func (a AccessLevel) CanClone() bool {
+	return a >= ReadOnly
+}
+
+// CanPull reports whether the level is allowed to fetch updates. Cloning and
+// pulling travel over the same git-upload-pack command, so they share a gate.
+func (a AccessLevel) CanPull() bool {
+	return a >= ReadOnly
+}
+
+// CanPush reports whether the level is allowed to write to the served
+// repository. ReadWrite and above may; ReadOnly may not.
+func (a AccessLevel) CanPush() bool {
+	return a >= ReadWrite
+}
+
 // Struct holding user information
 type User struct {
 	gorm.Model
