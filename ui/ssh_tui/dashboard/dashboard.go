@@ -21,6 +21,7 @@ import (
 	"github.com/nim-sam/gitport/ui/ssh_tui/form"
 	"github.com/nim-sam/gitport/ui/ssh_tui/help"
 	serverlogs "github.com/nim-sam/gitport/ui/ssh_tui/server_logs"
+	userdetail "github.com/nim-sam/gitport/ui/ssh_tui/user_detail"
 	userlist "github.com/nim-sam/gitport/ui/ssh_tui/user_list"
 )
 
@@ -68,6 +69,16 @@ type Model struct {
 
 	// UserList-related specs
 	userList userlist.Model
+
+	// UserDetail is the right panel of the user management tab. It mirrors the
+	// user highlighted in userList; lastSelectedUserID tracks which user's
+	// activity record is currently loaded into it.
+	userDetail         userdetail.Model
+	lastSelectedUserID uint
+
+	// commits is the repo's commits newest first, held so the user detail panel
+	// can filter them to the selected user's authorship.
+	commits []model.Commit
 
 	// Dashboard-related specs
 	screenWidth  int
@@ -151,11 +162,15 @@ func New(users []model.User, commits []model.Commit, logs []model.Log, width, he
 
 	v := commitviewport.New()
 
+	ud := userdetail.New()
+
 	// Return new dashboard model
 	m := Model{
 		commitViewport:            v,
 		navigator:                 nav,
 		userList:                  u,
+		userDetail:                ud,
+		commits:                   commits,
 		commitHistory:             ch,
 		serverLogs:                sl,
 		userCreationForm:          ucf,
@@ -169,6 +184,17 @@ func New(users []model.User, commits []model.Commit, logs []model.Log, width, he
 	// correctly instead of waiting for a tea.WindowSizeMsg that only arrives
 	// once the terminal is resized.
 	m.resize(width, height)
+
+	// Seed the user detail panel so the very first frame shows the highlighted
+	// user rather than the empty placeholder.
+	if u, ok := m.userList.GetSelectedUser(); ok {
+		m.userDetail.SetUser(u)
+		if activity, err := repository.ActivityRepo.First("user_id = ?", u.ID); err == nil {
+			m.userDetail.SetActivity(activity)
+		}
+		m.userDetail.SetCommits(m.userCommits(u))
+		m.lastSelectedUserID = u.ID
+	}
 
 	return m
 }
@@ -198,6 +224,10 @@ func (m *Model) resize(width, height int) {
 	// commitViewport inherits dimensions from right panel
 	m.commitViewport.Height(m.innerHeight)
 	m.commitViewport.Width(m.rightWidth)
+
+	// UserDetail draws its own border, so it is sized to the panel's full outer
+	// dimensions rather than the inner content box.
+	m.userDetail.SetSize(m.rightWidth+2, m.innerHeight+2)
 
 	// Navigator inherits width from inner width
 	m.navigator.Width = m.innerWidth
@@ -268,6 +298,31 @@ func (m Model) lookupUser(id uint) (model.User, bool) {
 	return model.User{}, false
 }
 
+// selectedUserID returns the ID of the user highlighted in the list, or zero
+// when the list is empty so lookups safely fail.
+func (m Model) selectedUserID() uint {
+	if u, ok := m.userList.GetSelectedUser(); ok {
+		return u.ID
+	}
+	return 0
+}
+
+// userCommits returns the commits authored by user, newest first. Commits carry
+// the git author name (not a user id), so the match is on that name; the panel
+// caps how many it shows.
+func (m Model) userCommits(user model.User) []model.Commit {
+	if user.Name == "" {
+		return nil
+	}
+	var out []model.Commit
+	for _, c := range m.commits {
+		if c.Author == user.Name {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // protectedOwner reports whether target is the Owner and not the current user.
 // Such users may not be edited or deleted by anyone else.
 func (m Model) protectedOwner(target model.User) bool {
@@ -327,7 +382,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					case DefaultState:
 						// Fetch currently selected user from the database so the
 						// owner check reflects its current, not listed, role.
-						if target, ok := m.lookupUser(m.userList.GetSelectedUser().ID); ok && !m.protectedOwner(target) {
+						if target, ok := m.lookupUser(m.selectedUserID()); ok && !m.protectedOwner(target) {
 							m.state = EditState
 							m.userModificationForm.ResetSelection()
 							m.userModificationForm.SetUserFields(target)
@@ -348,7 +403,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					switch m.state {
 					case DefaultState:
 						// Nobody may delete the Owner.
-						if user, ok := m.lookupUser(m.userList.GetSelectedUser().ID); ok && user.AccessLevel != model.Owner {
+						if user, ok := m.lookupUser(m.selectedUserID()); ok && user.AccessLevel != model.Owner {
 							m.state = DeleteState
 
 							// Set dialog data catered for user deletion
@@ -400,8 +455,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Confirm && m.state == DeleteState && m.canManage() {
 			// Re-check the target's role so a user promoted to Owner after the
 			// dialog opened cannot be deleted.
-			if user, ok := m.lookupUser(m.userList.GetSelectedUser().ID); ok && user.AccessLevel != model.Owner {
+			if user, ok := m.lookupUser(m.selectedUserID()); ok && user.AccessLevel != model.Owner {
 				repository.UserRepo.Delete(user.ID)
+				if activity, err := repository.ActivityRepo.First("user_id = ?", user.ID); err == nil {
+					repository.ActivityRepo.Delete(activity.ID)
+				}
 				m.userList.UpdateUsers(repository.UserRepo.Load())
 			}
 
@@ -438,7 +496,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// users from database. The target's role is re-read so a user
 				// promoted to Owner mid-dialog is protected, and the Owner's own
 				// access level is pinned regardless of what the form submitted.
-				if target, ok := m.lookupUser(m.userList.GetSelectedUser().ID); ok && !m.protectedOwner(target) {
+				if target, ok := m.lookupUser(m.selectedUserID()); ok && !m.protectedOwner(target) {
 					updatedUser := msg.GetUser()
 					updatedUser.ID = target.ID
 					if target.AccessLevel == model.Owner {
@@ -463,8 +521,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch m.state {
 		// Broswing users
 		case DefaultState, FilterState:
+			m.userDetail.SetFocused(m.focus == rightPanel)
 			if m.focus == leftPanel {
 				m.userList, _ = m.userList.Update(msg)
+			} else {
+				m.userDetail, SubmodelUpdateCmd = m.userDetail.Update(msg)
 			}
 		// Creating user
 		case CreateState:
@@ -517,6 +578,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = DefaultState
 	}
 
+	// Keep the user detail panel in step with the list selection. The selected
+	// user is pushed down every update; its activity record is loaded only when
+	// the selection changes, as a single indexed lookup rather than a scan of
+	// the log table.
+	if m.tab == userManagement && (m.state == DefaultState || m.state == FilterState) {
+		if selected, ok := m.userList.GetSelectedUser(); ok {
+			m.userDetail.SetUser(selected)
+			if selected.ID != m.lastSelectedUserID {
+				m.lastSelectedUserID = selected.ID
+				activity, _ := repository.ActivityRepo.First("user_id = ?", selected.ID)
+				m.userDetail.SetActivity(activity)
+				m.userDetail.SetCommits(m.userCommits(selected))
+			}
+		} else {
+			m.lastSelectedUserID = 0
+			m.userDetail.SetUser(model.User{})
+			m.userDetail.SetActivity(model.Activity{})
+			m.userDetail.SetCommits(nil)
+		}
+	}
+
 	m.help, _ = m.help.Update(msg)
 
 	return m, tea.Batch(cmds...)
@@ -536,7 +618,8 @@ func (m Model) View() string {
 		switch m.state {
 		default:
 			leftPanelContent = m.userList.View()
-			rightPanelContent = ""
+			m.userDetail.SetFocused(m.focus == rightPanel)
+			rightPanelContent = m.userDetail.View()
 		}
 	// Commit History Tab
 	case commitHistory:
@@ -582,7 +665,20 @@ func (m Model) View() string {
 	// Panel styling per tab and panel focus
 
 	switch m.tab {
-	case userManagement, commitHistory:
+	case userManagement:
+		// The user detail component draws the right panel's border itself (a
+		// two-row table: activity above commits), so the dashboard leaves the
+		// right panel borderless and merely reserves the same outer footprint.
+		switch m.focus {
+		case leftPanel:
+			leftPanelStyle = panelStyleFocused.Width(m.leftWidth)
+		default:
+			leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
+		}
+		rightPanelStyle = lipgloss.NewStyle().
+			Width(m.rightWidth + 2).
+			Height(m.innerHeight + 2)
+	case commitHistory:
 		switch m.focus {
 		case leftPanel:
 			leftPanelStyle = panelStyleFocused.Width(m.leftWidth)
@@ -590,6 +686,9 @@ func (m Model) View() string {
 		case rightPanel:
 			leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
 			rightPanelStyle = panelStyleFocused.Width(m.rightWidth)
+		default:
+			leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
+			rightPanelStyle = panelStyleBlurred.Width(m.rightWidth)
 		}
 	case serverLogs:
 		switch m.focus {
@@ -616,8 +715,6 @@ func (m Model) View() string {
 
 	if m.focus == popUpPanel {
 		popUpStyle = popUpStyle.BorderForeground(ui.Palette.SelectedBorder)
-		leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
-		rightPanelStyle = panelStyleBlurred.Width(m.rightWidth)
 	}
 
 	// HelpBar Styling
