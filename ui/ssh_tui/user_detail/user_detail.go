@@ -100,7 +100,7 @@ func (m *Model) SetCommits(commits []model.Commit) {
 
 	if len(commits) > 0 {
 		m.mostRecentCommit = commits[0]
-		commits = commits[1:commitLimit]
+		commits = commits[1:]
 	} else {
 		m.mostRecentCommit = model.Commit{}
 	}
