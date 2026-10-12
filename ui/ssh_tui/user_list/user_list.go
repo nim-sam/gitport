@@ -49,6 +49,7 @@ func (m *Model) UpdateUsers(users []model.User) {
 		}
 
 		userList = append(userList, userItem{
+			id:          user.ID,
 			sshKey:      strippedSshKey,
 			name:        user.Name,
 			email:       user.Email,
@@ -120,7 +121,19 @@ func New(users []model.User) Model {
 	return ul
 }
 
-// Gets currently selected user
-func (m Model) GetSelectedUser() model.User {
-	return m.UserData[m.ListModel.Index()]
+// GetSelectedUser returns the user highlighted in the list. It reports false
+// when the list is empty. The selected list item is resolved back to a stored
+// user by ID, so the result stays correct while a filter is applied (the list's
+// index is relative to the filtered view, not to UserData).
+func (m Model) GetSelectedUser() (model.User, bool) {
+	item, ok := m.ListModel.SelectedItem().(userItem)
+	if !ok {
+		return model.User{}, false
+	}
+	for _, u := range m.UserData {
+		if u.ID == item.id {
+			return u, true
+		}
+	}
+	return model.User{}, false
 }
