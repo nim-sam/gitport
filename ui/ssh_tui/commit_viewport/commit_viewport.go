@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/nim-sam/gitport/ui"
 	commithistory "github.com/nim-sam/gitport/ui/ssh_tui/commit_history"
@@ -77,8 +78,8 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	// Set dimensions
-	m.viewport.Height = m.height - 2
-	m.viewport.Width = m.width - 2
+	m.viewport.Height = m.height - 4
+	m.viewport.Width = m.width - 6
 
 	switch msg := msg.(type) {
 
@@ -117,32 +118,49 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 
 	diffContainer := lipgloss.NewStyle().
-		Height(m.height-2).
-		Width(m.width).
+		Height(m.height-4).
+		Width(m.width-4).
 		Padding(0, 1)
 
-	diffTitle := truncateTitle("["+m.commitHashShort+"] "+m.commitMsg, m.width-2)
+	diffTitle := truncateTitle("["+m.commitHashShort+"] "+m.commitMsg, m.width-4)
 
 	diffTitleRender := lipgloss.NewStyle().
-		Width(m.width-2).
+		Width(m.width - 4).
 		Height(1).
 		Align(lipgloss.Center).
 		Bold(true).
 		Foreground(ui.Palette.Fg).
-		Border(lipgloss.NormalBorder(), false, false, true, false).
-		BorderForeground(ui.Palette.Border).
+		// Border(lipgloss.NormalBorder(), false, false, true, false).
+		// BorderForeground(ui.Palette.Border).
 		Render(diffTitle)
 
 	titleCentered := lipgloss.NewStyle().
 		AlignHorizontal(lipgloss.Center).
-		Width(m.width).
+		Width(m.width - 4).
 		Render(diffTitleRender)
 
-	return lipgloss.JoinVertical(
-		lipgloss.Top,
-		titleCentered,
-		diffContainer.Render(m.viewport.View()),
-	)
+	contentContainer := table.New().
+		Border(lipgloss.RoundedBorder()).
+		BorderRow(true).
+		BorderStyle(lipgloss.NewStyle().Foreground(ui.Palette.Border)).
+		Width(m.width-2).
+		Height(m.height-2).
+		Rows(
+			[]string{
+				titleCentered,
+			},
+			[]string{
+				diffContainer.Render(m.viewport.View()),
+			},
+		)
+
+	if m.focused {
+		contentContainer = contentContainer.BorderStyle(
+			lipgloss.NewStyle().Foreground(ui.Palette.SelectedBorder),
+		)
+	}
+
+	return contentContainer.Render()
 }
 
 // Width and height setters
