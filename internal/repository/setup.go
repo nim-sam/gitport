@@ -13,8 +13,10 @@ func Migrate() {
 	UserRepo.DB = database.DB
 	LogRepo.DB = database.DB
 	CommitRepo.DB = database.DB
+	ActivityRepo.DB = database.DB
 
 	UserRepo.DB.AutoMigrate(&model.User{})
 	LogRepo.DB.AutoMigrate(&model.Log{})
 	CommitRepo.DB.AutoMigrate(&model.Commit{})
+	ActivityRepo.DB.AutoMigrate(&model.Activity{})
 }
