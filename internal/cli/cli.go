@@ -42,7 +42,7 @@ func Run() error {
 		Register()
 
 	if _, err := pecan.App("gitport").Launch(); err != nil {
-		fmt.Fprint(os.Stderr, usage)
+		fmt.Fprint(os.Stderr, "error: ", err)
 		return err
 	}
 	return nil
