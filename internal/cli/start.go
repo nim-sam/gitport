@@ -27,7 +27,7 @@ func startHandler(_ []string) error {
 	}
 
 	if !config.Exists(root) {
-		return fmt.Errorf("gitport is not initialized in %s; run `gitport init` first", root)
+		return fmt.Errorf("gitport is not initialized in %s; run `gitport init` first\n", root)
 	}
 
 	cfg, err := config.Load(root)
