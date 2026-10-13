@@ -25,6 +25,10 @@ ssh <name>.local
 ssh -p 2222 <name>.local
 ```
 
+<p align="center">
+  <img src="img/gitport_ssh_demo.gif" width="1000">
+</p>
+
 ## Installation
 
 Requirements: [Go](https://go.dev/dl/), `git` and `make`.
