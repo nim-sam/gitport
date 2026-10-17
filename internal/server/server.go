@@ -12,6 +12,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/charmbracelet/wish/activeterm"
@@ -19,6 +20,7 @@ import (
 	"github.com/charmbracelet/wish/logging"
 	"github.com/charmbracelet/wish/recover"
 	"github.com/go-git/go-git/v5"
+	"github.com/muesli/termenv"
 
 	"github.com/nim-sam/gitport/internal/config"
 	"github.com/nim-sam/gitport/internal/logger"
@@ -102,6 +104,9 @@ func (s Server) Start() error {
 // sessions are given shutdownTimeout to drain. Ready, when set, is closed after
 // the listener binds successfully.
 func (s Server) Run(ctx context.Context) error {
+
+	// Enforcing truecolor profileeeee
+	lipgloss.SetColorProfile(termenv.TrueColor)
 
 	host, port := s.Host, s.Port
 	if host == "" {
