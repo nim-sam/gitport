@@ -431,22 +431,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.focus = leftPanel
 				}
 			}
-		case "tab":
-			switch m.state {
-			// Swtich tabs when in default state
-			case DefaultState:
-				previousTab := m.tab
-				m.navigator, _ = m.navigator.Update(msg)
-				m.tab = tabFocus(m.navigator.Index())
+		case "tab", "shift+tab":
 
-				// Reset Focus when switching tabs
-				if m.tab != previousTab {
-					switch m.tab {
-					case userManagement, commitHistory:
-						m.focus = leftPanel
-					case serverLogs:
-						m.focus = fullPanel
-					}
+			previousTab := m.tab
+			m.navigator, _ = m.navigator.Update(msg)
+			m.tab = tabFocus(m.navigator.Index())
+
+			// Reset Focus when switching tabs
+			if m.tab != previousTab {
+				switch m.tab {
+				case userManagement, commitHistory:
+					m.focus = leftPanel
+				case serverLogs:
+					m.focus = fullPanel
 				}
 			}
 		}
