@@ -35,6 +35,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch msg.String() {
 		case "tab":
 			m.selectedTab = (m.selectedTab + 1) % m.size
+		case "shift+tab":
+			m.selectedTab = (m.selectedTab - 1 + len(m.Tabs)) % m.size
 		}
 	}
 
