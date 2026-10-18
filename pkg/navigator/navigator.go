@@ -84,7 +84,7 @@ func New() Model {
 		Padding(0, 1)
 
 	tabBlurredStyle := lipgloss.NewStyle().
-		Italic(true).
+		// Italic(true).
 		Border(lipgloss.HiddenBorder(), false, false, true, false).
 		AlignHorizontal(lipgloss.Center).
 		Padding(0, 1)

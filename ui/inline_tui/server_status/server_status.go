@@ -234,12 +234,10 @@ func New(info Info, width, height int) Model {
 
 // Styling helpers.
 
-var errorColor = lipgloss.Color("#ff5555")
-
 func levelStyle(level model.LogLevel) lipgloss.Style {
 	switch level {
 	case model.Error:
-		return lipgloss.NewStyle().Foreground(errorColor).Bold(true).Width(7)
+		return lipgloss.NewStyle().Foreground(ui.Palette.Error).Bold(true).Width(7)
 	case model.Warning:
 		return lipgloss.NewStyle().Foreground(ui.Palette.FgHighlight).Bold(true).Width(7)
 	default:
@@ -276,7 +274,7 @@ func statusColor(s status) lipgloss.Color {
 	case statusRunning:
 		return ui.Palette.Accent
 	case statusError:
-		return errorColor
+		return ui.Palette.Error
 	case statusStopped:
 		return ui.Palette.FgMuted
 	default:

@@ -636,7 +636,7 @@ func (m Model) View() string {
 	// Navigator styling
 
 	m.navigator.Styles.Title = m.navigator.Styles.Title.Foreground(ui.Palette.Accent)
-	m.navigator.Styles.TabBlurred = m.navigator.Styles.TabBlurred.Foreground(ui.Palette.FgMuted).Faint(true)
+	m.navigator.Styles.TabBlurred = m.navigator.Styles.TabBlurred.Foreground(ui.Palette.FgMuted)
 	m.navigator.Styles.TabFocused = m.navigator.Styles.TabFocused.Foreground(ui.Palette.Fg).BorderForeground(ui.Palette.Fg)
 	m.navigator.Styles.Separator = m.navigator.Styles.Separator.Foreground(ui.Palette.FgMuted).Bold(true)
 	navigatorContainer := lipgloss.NewStyle().Padding(0, 1)
