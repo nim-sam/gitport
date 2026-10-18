@@ -3,6 +3,8 @@ package cli
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/go-git/go-git/v5"
@@ -11,6 +13,7 @@ import (
 	"github.com/nim-sam/gitport/internal/database"
 	"github.com/nim-sam/gitport/internal/model"
 	"github.com/nim-sam/gitport/internal/repository"
+	"github.com/nim-sam/gitport/internal/server"
 	initprompter "github.com/nim-sam/gitport/ui/inline_tui/init_prompter"
 )
 
@@ -61,6 +64,17 @@ func initHandler(_ []string) error {
 	admin := result.GetAdmin()
 	admin.AccessLevel = model.Owner
 	repository.UserRepo.Save(admin)
+
+	// Add a "gitport" remote to the working repository so a push reaches the
+	// served bare repository as `git push gitport <branch>`. A remote that
+	// already exists is repointed rather than left stale.
+	url := strings.TrimPrefix(server.New(root, cfg).CloneAddress(), "git clone ")
+	if _, err := exec.Command("git", "-C", root, "remote", "add", "gitport", url).CombinedOutput(); err != nil {
+		// A remote from an earlier init is repointed rather than left stale.
+		if out, err := exec.Command("git", "-C", root, "remote", "set-url", "gitport", url).CombinedOutput(); err != nil {
+			fmt.Printf("Could not add the gitport remote: %v: %s\n", err, out)
+		}
+	}
 
 	fmt.Printf("Initialized %s\n", config.Dir(root))
 	fmt.Println("Run `gitport start` to launch the server.")
