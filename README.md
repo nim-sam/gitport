@@ -1,6 +1,8 @@
 # GitPort
 
+<p align=center> 
 GitPort is a self-hosted Git server designed for local area networks (LANs), making it easy to share and collaborate on Git repositories without relying on external hosting services.
+</p>
 
 Point GitPort at a Git repository to serve it over SSH. It includes a built-in terminal UI (TUI) dashboard for managing access, browsing commits, and monitoring server activity.
 
@@ -20,16 +22,17 @@ Point GitPort at a Git repository to serve it over SSH. It includes a built-in t
 
 ### Requirements
 
-- [Go](<https://go.dev/dl/>)
+- `golang`
 - `git`
 - `make`
+- `build-essential`
 
 ### Build and install
 
-```
-git clone https://github.com/nim-sam/gitport.git
+``` bash
+git clone 
 cd gitport
-make install
+make
 ```
 
 ## Getting Started
@@ -40,19 +43,23 @@ GitPort is initialized from the root of the Git repository you want to serve. Yo
 
 For a new repository:
 
-```
+``` bash
 mkdir my-repo
 cd my-repo
-git init -q
+git init
 ```
 
 If you already have a Git repository, simply navigate to its root directory.
+
+``` bash
+cd my-repo
+```
 
 ### 2\. Initialize GitPort
 
 Run the initialization command:
 
-```
+``` bash
 gitport init
 ```
 
@@ -64,7 +71,7 @@ You'll be prompted to configure the server, including its display name, host, po
 
 From the repository root, run:
 
-```
+``` bash
 gitport start
 ```
 
@@ -78,13 +85,13 @@ Use the SSH address displayed at startup to access the repository from another m
 
 For a server running on port `2222`:
 
-```
+``` bash
 git clone ssh://git@<name>.local:2222/<repo>.git
 ```
 
 For a server running on the default SSH port (`22`):
 
-```
+``` bash
 git clone git@<name>.local:<repo>.git
 ```
 
@@ -98,13 +105,13 @@ GitPort includes a terminal UI dashboard accessible through SSH. Connect to your
 
 For a server using the default SSH port:
 
-```
+``` bash
 ssh <name>.local
 ```
 
 For a server running on port `2222`:
 
-```
+``` bash
 ssh -p 2222 <name>.local
 ```
 
