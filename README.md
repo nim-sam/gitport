@@ -27,6 +27,8 @@ GitPort is a self-hosted Git server designed for local area networks (LANs), mak
 | **Non-invasive hosting** | Serves a bare repository, keeping your working tree untouched by remote pushes. |
 | **Self-contained setup** | No separate web service, database server, or DNS configuration needed. |
 
+---
+
 ## Installation
 
 <details>
@@ -115,6 +117,8 @@ git clone git@<name>.local:<repo>.git
 Replace `<name>` with your GitPort server's hostname and `<repo>` with the repository name.
 
 Once cloned, use Git as usual to fetch, pull, and push changes.
+
+---
 
 ## SSH Dashboard
 
