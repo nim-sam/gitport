@@ -79,6 +79,11 @@ You'll be prompted to configure the server, including its display name, host, po
 
 <p align="center"> <img src="img/gitport_init_demo.gif" width="700" alt="GitPort initialization walkthrough"> </p>
 
+ The `gitport init` command will create a `.gitport/` directory inside your repo, storing server configurations and server data.
+
+> [!Caution] 
+> Add `.gitport/` to your `.gitignore`. This directory contains GitPort's private SSH host key and user database. Do not commit or share these files.
+
 ### 3\. Start the server
 
 From the repository root, run:
@@ -127,11 +132,7 @@ For a server running on port `2222`:
 ssh -p 2222 <name>.local
 ```
 
-<p align="center"> <img src="img/gitport_ssh_demo.gif" width="1000" alt="GitPort SSH terminal dashboard"> </p>
-
-
-> [!Caution] 
-> Add `.gitport/` to your `.gitignore`. This directory contains GitPort's private SSH host key and user database. Do not commit or share these files.
-
 > [!Note]
 > mDNS works on the local network. If `<name>.local` does not resolve, connect using the server's IP address instead.
+
+<p align="center"> <img src="img/gitport_ssh_demo.gif" width="1000" alt="GitPort SSH terminal dashboard"> </p>
