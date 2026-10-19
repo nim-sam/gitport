@@ -53,9 +53,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.errMsg = ""
 
 		switch msg.String() {
-		case "tab":
+		case "up":
+			m.selectedInput = m.prevFocusIndex()
+		case "down":
 			m.selectedInput = m.nextFocusIndex()
 		case "enter":
+
 			// Pass UserFormConfirmationMsg if "enter" is pressed
 			// while the confirm/submit button is selected
 			if m.confirmButtonSelected() {
@@ -77,6 +80,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				cmd := func() tea.Msg { return UserFormConfirmationMsg{user: user} }
 				cmds = append(cmds, cmd)
 			}
+			m.selectedInput = m.nextFocusIndex()
 		}
 	}
 
@@ -249,6 +253,15 @@ func (m Model) nextFocusIndex() int {
 		next = (next + 1) % count
 	}
 	return next
+}
+
+func (m Model) prevFocusIndex() int {
+	count := len(m.Inputs) + 2
+	prev := (m.selectedInput + count - 1) % count
+	if m.accessLocked && prev == len(m.Inputs) {
+		prev = (prev - 1) % count
+	}
+	return prev
 }
 
 // selectedAccess returns the access level the form will submit, honouring the
