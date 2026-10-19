@@ -1,12 +1,21 @@
 # GitPort
 
+<p align="center"> <img src="img/gitport_logo.png" width="300" alt="GitPort  Logo"> </p>
+
+<p align="center">
+  <a href="https://golang.org"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white" alt="Go version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/nim-sam/gitport" alt="License"></a>
+  <a href="https://github.com/nim-sam/gitport/releases"><img src="https://img.shields.io/github/v/release/youruser/gitport" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS-lightgrey" alt="Platform">
+</p>
+
 <p align=center> 
 GitPort is a self-hosted Git server designed for local area networks (LANs), making it easy to share and collaborate on Git repositories without relying on external hosting services.
 </p>
+ 
+<!-- > * Point GitPort at a Git repository to serve it over SSH. It includes a built-in terminal UI (TUI) dashboard for managing access, browsing commits, and monitoring server activity.
 
-Point GitPort at a Git repository to serve it over SSH. It includes a built-in terminal UI (TUI) dashboard for managing access, browsing commits, and monitoring server activity.
-
-**No separate web server, database, or DNS configuration required.** GitPort uses mDNS to make your server discoverable on the local network.
+**No separate web server, database, or DNS configuration required.** GitPort uses mDNS to make your server discoverable on the local network. -->
 
 ## Features
 
@@ -20,12 +29,15 @@ Point GitPort at a Git repository to serve it over SSH. It includes a built-in t
 
 ## Installation
 
-### Requirements
+<details>
+<summary><strong>Requirements</strong></summary>
 
 - `golang`
 - `git`
 - `make`
 - `build-essential`
+
+</details>
 
 ### Build and install
 
@@ -117,7 +129,9 @@ ssh -p 2222 <name>.local
 
 <p align="center"> <img src="img/gitport_ssh_demo.gif" width="1000" alt="GitPort SSH terminal dashboard"> </p>
 
-## Notes
 
-- **Protect server data:** Add `.gitport/` to your `.gitignore`. This directory contains GitPort's private SSH host key and user database. Do not commit or share these files.
-- **LAN-only discovery:** mDNS works on the local network. If `<name>.local` does not resolve, connect using the server's IP address instead.
+> [!Caution] 
+> Add `.gitport/` to your `.gitignore`. This directory contains GitPort's private SSH host key and user database. Do not commit or share these files.
+
+> [!Note]
+> mDNS works on the local network. If `<name>.local` does not resolve, connect using the server's IP address instead.
