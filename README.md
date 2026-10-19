@@ -36,7 +36,6 @@ GitPort is a self-hosted Git server designed for local area networks (LANs), mak
 
 - `golang`
 - `git`
-- `make`
 - `build-essential`
 
 </details>
