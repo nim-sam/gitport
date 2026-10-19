@@ -30,17 +30,41 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
+	var cmds []tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
 			m.selectedTab = (m.selectedTab + 1) % m.size
+			// Send updated selection via NavigatorMsg
+			cmds = append(cmds,
+				SendNavigatorMsg(
+					NavigatorMsg{
+						currentTab: m.selectedTab,
+					},
+				),
+			)
 		case "shift+tab":
 			m.selectedTab = (m.selectedTab - 1 + len(m.Tabs)) % m.size
+			// Send update selection via NavigatorMsg
+			cmds = append(cmds,
+				SendNavigatorMsg(
+					NavigatorMsg{
+						currentTab: m.selectedTab,
+					},
+				),
+			)
 		}
 	}
 
-	return m, nil
+	return m, tea.Batch(cmds...)
+}
+
+// Creates tea.Cmd out of NavigatorMsg `msg`
+func SendNavigatorMsg(msg NavigatorMsg) tea.Cmd {
+	return func() tea.Msg {
+		return msg
+	}
 }
 
 func (m Model) View() string {

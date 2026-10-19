@@ -431,21 +431,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.focus = leftPanel
 				}
 			}
-		case "tab", "shift+tab":
-
-			previousTab := m.tab
-			m.navigator, _ = m.navigator.Update(msg)
-			m.tab = tabFocus(m.navigator.Index())
-
-			// Reset Focus when switching tabs
-			if m.tab != previousTab {
-				switch m.tab {
-				case userManagement, commitHistory:
-					m.focus = leftPanel
-				case serverLogs:
-					m.focus = fullPanel
-				}
-			}
 		}
 	// Handles user deletion dialog
 	case dialog.SelectionMsg:
@@ -506,6 +491,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Return to default state
 				m.state = DefaultState
 				m.focus = leftPanel
+			}
+		}
+	case navigator.NavigatorMsg:
+		previousTab := m.tab
+		m.tab = tabFocus(msg.GetCurrentTab())
+
+		// Reset Focus when switching tabs
+		if m.tab != previousTab {
+			switch m.tab {
+			case userManagement, commitHistory:
+				m.focus = leftPanel
+			case serverLogs:
+				m.focus = fullPanel
 			}
 		}
 	}
@@ -595,6 +593,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.userDetail.SetCommits(nil)
 		}
 	}
+
+	var navCmd tea.Cmd
+	m.navigator, navCmd = m.navigator.Update(msg)
+	cmds = append(cmds, navCmd)
 
 	m.help, _ = m.help.Update(msg)
 
