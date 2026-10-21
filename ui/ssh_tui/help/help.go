@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nim-sam/gitport/pkg/navigator"
 )
 
 type Model struct {
@@ -22,7 +23,10 @@ type Model struct {
 // keybindings and the help toggle are disabled so they never appear; the
 // package-level keys are copied first so disabling never leaks across sessions.
 func New(admin bool) Model {
-	k := keys
+
+	// TUI opens user management tab on startup, so we set user management keys
+	// as defualt keybinds for the help bar
+	k := userManagementKeys
 
 	if !admin {
 		k.NewUser.SetEnabled(false)
@@ -64,10 +68,22 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.lastKey = "ctrl+q"
 		case "enter":
 			m.lastKey = "enter"
+		case "/":
+			m.lastKey = "/"
 		case "?":
 			if m.admin {
 				m.help.ShowAll = !m.help.ShowAll
 			}
+		}
+	// Receives current tab from NavigatorMsg directly
+	case navigator.NavigatorMsg:
+		switch msg.GetCurrentTab() {
+		case 0:
+			m.keys = userManagementKeys
+		case 1:
+			m.keys = commitHistoryKeys
+		case 2:
+			m.keys = serverLogsKeys
 		}
 	}
 
