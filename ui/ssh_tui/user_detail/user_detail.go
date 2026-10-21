@@ -51,12 +51,12 @@ var (
 )
 
 type Model struct {
-	Width            int
-	Height           int
-	user             model.User
-	activity         model.Activity
-	table            table.Model
-	focused          bool
+	Width    int
+	Height   int
+	user     model.User
+	activity model.Activity
+	table    table.Model
+	// focused          bool
 	mostRecentCommit model.Commit
 }
 
@@ -65,12 +65,12 @@ func (m Model) Init() tea.Cmd { return nil }
 // Update forwards key events to the commit table while the panel is focused so
 // the table's viewport can be scrolled.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	if !m.focused {
-		return m, nil
-	}
-	var cmd tea.Cmd
+	// if !m.focused {
+	// 	return m, nil
+	// }
+	// var cmd tea.Cmd
 	// m.table, cmd = m.table.Update(msg)
-	return m, cmd
+	return m, nil
 }
 
 // SetUser sets the user whose name titles the panel.
@@ -81,14 +81,14 @@ func (m *Model) SetActivity(a model.Activity) { m.activity = a }
 
 // SetFocused reports whether the panel currently owns keyboard focus, which
 // selects the border colour and whether the commit table handles scroll keys.
-func (m *Model) SetFocused(f bool) {
-	m.focused = f
-	if f {
-		m.table.Focus()
-	} else {
-		m.table.Blur()
-	}
-}
+// func (m *Model) SetFocused(f bool) {
+// 	m.focused = f
+// 	if f {
+// 		m.table.Focus()
+// 	} else {
+// 		m.table.Blur()
+// 	}
+// }
 
 // SetCommits replaces the commit table with commits authored by the selected
 // user, newest first. At most commitLimit rows are shown.
@@ -222,13 +222,13 @@ func (m Model) View() string {
 			},
 		)
 
-	if m.focused {
-		contentContainer = contentContainer.
-			BorderStyle(
-				lipgloss.NewStyle().
-					Foreground(ui.Palette.SelectedBorder),
-			)
-	}
+	// if m.focused {
+	// 	contentContainer = contentContainer.
+	// 		BorderStyle(
+	// 			lipgloss.NewStyle().
+	// 				Foreground(ui.Palette.SelectedBorder),
+	// 		)
+	// }
 
 	return contentContainer.Render()
 }
