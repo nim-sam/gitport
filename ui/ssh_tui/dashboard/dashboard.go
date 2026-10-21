@@ -420,13 +420,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.focus = leftPanel
 		// Switching focus between left and right panels
 		case "enter":
-			switch m.state {
-			case DefaultState:
-				switch m.focus {
-				case leftPanel:
-					m.focus = rightPanel
-				case rightPanel:
-					m.focus = leftPanel
+			switch m.tab {
+			// Panel focus swithcing now only relevant for commit history tab
+			case commitHistory:
+				switch m.state {
+				case DefaultState:
+					switch m.focus {
+					case leftPanel:
+						m.focus = rightPanel
+					case rightPanel:
+						m.focus = leftPanel
+					}
 				}
 			}
 		}
@@ -514,7 +518,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch m.state {
 		// Broswing users
 		case DefaultState, FilterState:
-			m.userDetail.SetFocused(m.focus == rightPanel)
+			// m.userDetail.SetFocused(m.focus == rightPanel)
 			if m.focus == leftPanel {
 				m.userList, _ = m.userList.Update(msg)
 			} else {
@@ -615,7 +619,7 @@ func (m Model) View() string {
 		switch m.state {
 		default:
 			leftPanelContent = m.userList.View()
-			m.userDetail.SetFocused(m.focus == rightPanel)
+			// m.userDetail.SetFocused(m.focus == rightPanel)
 			rightPanelContent = m.userDetail.View()
 		}
 	// Commit History Tab
@@ -667,15 +671,15 @@ func (m Model) View() string {
 
 	switch m.tab {
 	case userManagement:
-		// The user detail component draws the right panel's border itself (a
-		// two-row table: activity above commits), so the dashboard leaves the
-		// right panel borderless and merely reserves the same outer footprint.
-		switch m.focus {
-		case leftPanel:
-			leftPanelStyle = panelStyleFocused.Width(m.leftWidth)
-		default:
-			leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
-		}
+		// switch m.focus {
+		// case leftPanel:
+		// 	leftPanelStyle = panelStyleFocused.Width(m.leftWidth)
+		// default:
+		// 	leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
+		// }
+
+		// Left Panel blurred by default (no need for panel focus toggling)
+		leftPanelStyle = panelStyleBlurred.Width(m.leftWidth)
 		rightPanelStyle = blankStyle
 	case commitHistory:
 		switch m.focus {
@@ -688,16 +692,16 @@ func (m Model) View() string {
 	case serverLogs:
 		switch m.focus {
 		case fullPanel:
-			fullPanelStyle = panelStyleFocused.
+			fullPanelStyle = panelStyleBlurred.
 				Width(m.innerWidth).
 				AlignVertical(lipgloss.Center).
 				AlignHorizontal(lipgloss.Center).
 				Foreground(ui.Palette.FgMuted)
-		default:
-			fullPanelStyle = panelStyleBlurred.
-				Width(m.innerWidth).
-				AlignVertical(lipgloss.Center).
-				Foreground(ui.Palette.FgMuted)
+			// default:
+			// 	fullPanelStyle = panelStyleBlurred.
+			// 		Width(m.innerWidth).
+			// 		AlignVertical(lipgloss.Center).
+			// 		Foreground(ui.Palette.FgMuted)
 		}
 	}
 
