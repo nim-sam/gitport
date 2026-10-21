@@ -17,6 +17,9 @@ type Model struct {
 	// admin gates the full help view. Non-admins only get the short help bar:
 	// the user-management bindings and the "?" toggle are removed entirely.
 	admin bool
+
+	// internal value storage for current tab
+	currentTab int
 }
 
 // New builds the help model. When admin is false the user-management
@@ -71,13 +74,22 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case "/":
 			m.lastKey = "/"
 		case "?":
-			if m.admin {
+			// if m.admin && m.currentTab == 0 {
+			// 	m.help.ShowAll = !m.help.ShowAll
+			// }
+			switch m.currentTab {
+			case 0:
+				if m.admin {
+					m.help.ShowAll = !m.help.ShowAll
+				}
+			case 1:
 				m.help.ShowAll = !m.help.ShowAll
 			}
 		}
 	// Receives current tab from NavigatorMsg directly
 	case navigator.NavigatorMsg:
-		switch msg.GetCurrentTab() {
+		m.currentTab = msg.GetCurrentTab()
+		switch m.currentTab {
 		case 0:
 			m.keys = userManagementKeys
 		case 1:
@@ -91,12 +103,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-
-	// Non-admins have no full help view, so never render it even if the help
-	// model was left in the expanded state.
-	if !m.admin {
-		m.help.ShowAll = false
-	}
 
 	helpContainer := lipgloss.NewStyle().Width(m.Width).Height(m.Height).AlignHorizontal(lipgloss.Center)
 
