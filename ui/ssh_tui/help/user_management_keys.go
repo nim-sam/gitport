@@ -29,7 +29,7 @@ func (k UserManagementKeys) FullHelp() [][]key.Binding {
 	}
 }
 
-var userManagementKeys = UserManagementKeys{
+var userManagementKeysAdmin = UserManagementKeys{
 	VNav: key.NewBinding(
 		key.WithKeys("up", "down"),
 		key.WithHelp("↑/↓", "up/down"),
@@ -57,5 +57,20 @@ var userManagementKeys = UserManagementKeys{
 	Help: key.NewBinding(
 		key.WithKeys("?"),
 		key.WithHelp("?", "help"),
+	),
+}
+
+var userManagementKeysNonAdmin = UserManagementKeys{
+	VNav: key.NewBinding(
+		key.WithKeys("up", "down"),
+		key.WithHelp("↑/↓", "up/down"),
+	),
+	Tab: key.NewBinding(
+		key.WithKeys("tab"),
+		key.WithHelp("tab", "switch tabs"),
+	),
+	Quit: key.NewBinding(
+		key.WithKeys("ctrl+q"),
+		key.WithHelp("ctrl+q", "quit"),
 	),
 }

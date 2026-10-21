@@ -29,13 +29,12 @@ func New(admin bool) Model {
 
 	// TUI opens user management tab on startup, so we set user management keys
 	// as defualt keybinds for the help bar
-	k := userManagementKeys
 
-	if !admin {
-		k.NewUser.SetEnabled(false)
-		k.EditUser.SetEnabled(false)
-		k.DeleteUser.SetEnabled(false)
-		k.Help.SetEnabled(false)
+	var k DashboardKeys
+	if admin {
+		k = userManagementKeysAdmin
+	} else {
+		k = userManagementKeysNonAdmin
 	}
 
 	return Model{
@@ -88,10 +87,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	// Receives current tab from NavigatorMsg directly
 	case navigator.NavigatorMsg:
+		// Resent show all toggle
+		m.help.ShowAll = false
+
+		// Switch to appropriate key bind set
 		m.currentTab = msg.GetCurrentTab()
 		switch m.currentTab {
 		case 0:
-			m.keys = userManagementKeys
+			if m.admin {
+				m.keys = userManagementKeysAdmin
+			} else {
+				m.keys = userManagementKeysNonAdmin
+			}
 		case 1:
 			m.keys = commitHistoryKeys
 		case 2:
