@@ -12,6 +12,7 @@ package initprompter
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -227,7 +228,7 @@ func (m Model) assemble() (config.Config, model.User) {
 		Name:        m.inputs[3].Value(),
 		Email:       m.inputs[4].Value(),
 		AccessLevel: model.Admin,
-		SshKey:      m.inputs[5].Value(),
+		SshKey:      strings.ReplaceAll(m.inputs[5].Value(), "\n", ""),
 	}
 
 	return cfg, admin
@@ -274,6 +275,7 @@ func New(width int, height int) Model {
 		t.Placeholder = p.placeholder
 		t.TextStyle = lipgloss.NewStyle().Foreground(ui.Palette.Fg)
 		t.Cursor.Style = lipgloss.NewStyle().Foreground(ui.Palette.Fg)
+		t.Cursor.TextStyle = t.TextStyle
 		t.Width = width - 8
 		inputs[i] = t
 	}

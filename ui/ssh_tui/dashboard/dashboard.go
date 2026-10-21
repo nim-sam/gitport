@@ -238,12 +238,10 @@ func (m *Model) resize(width, height int) {
 	m.userList.ListModel.SetSize(m.userList.Width, m.userList.Height)
 
 	// UserCreationForm inherits dimensions from right panel
-	m.userCreationForm.Width = m.rightWidth
-	m.userCreationForm.Height = int(float32(m.innerHeight) * 2 / 3)
+	m.userCreationForm.SetSize(m.rightWidth, int(float32(m.innerHeight)*2/3))
 
 	// UserModificatoinForm inherits dimensions from right panel
-	m.userModificationForm.Width = m.rightWidth
-	m.userModificationForm.Height = int(float32(m.innerHeight) * 2 / 3)
+	m.userModificationForm.SetSize(m.rightWidth, int(float32(m.innerHeight)*2/3))
 
 	// Dialog inherits dimensions from right panel
 	m.confirmUserDeletionDialog.Width = m.rightWidth

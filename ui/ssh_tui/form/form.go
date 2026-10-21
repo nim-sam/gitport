@@ -11,6 +11,11 @@ import (
 	"github.com/nim-sam/gitport/ui"
 )
 
+// inputGutter is the horizontal space reserved around a text input inside
+// the form (field labels, container padding), so the input's viewport never
+// exceeds its dedicated area.
+const inputGutter = 26
+
 // User form model struct
 type Model struct {
 	Inputs        []textinput.Model
@@ -42,9 +47,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmds tea.BatchMsg
 
 	// Adjust length of text inputs
-	for i, _ := range m.Inputs {
-		m.Inputs[i].Width = m.Width - 26
-	}
+	m.syncInputWidths()
 
 	switch msg := msg.(type) {
 	// Handle keystrokes
@@ -73,7 +76,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				user := model.User{
 					Name:        m.Inputs[0].Value(),
 					Email:       m.Inputs[1].Value(),
-					SshKey:      m.Inputs[2].Value(),
+					SshKey:      strings.ReplaceAll(m.Inputs[2].Value(), "\n", ""),
 					AccessLevel: m.selectedAccess(),
 				}
 
@@ -133,13 +136,7 @@ func (m Model) View() string {
 
 	// Styling text input models
 	for _, model := range m.Inputs {
-
-		model.TextStyle = model.TextStyle.Foreground(ui.Palette.Fg)
-		model.PlaceholderStyle = model.PlaceholderStyle.Foreground(ui.Palette.FgMuted).Italic(true)
-		model.Cursor.Style = model.Cursor.Style.Foreground(ui.Palette.FgHighlight)
-		model.PromptStyle = model.PromptStyle.Foreground(ui.Palette.FgHighlight)
-
-		formFieldsView = append(formFieldsView, model.View())
+		formFieldsView = append(formFieldsView, styleForView(model).View())
 	}
 
 	// Styling submit button
@@ -224,11 +221,50 @@ func (m Model) View() string {
 	)
 }
 
+// styleForView applies the palette to a copy of a text input so its value,
+// placeholder, prompt and cursor render in the theme's colors.
+func styleForView(model textinput.Model) textinput.Model {
+	model.TextStyle = model.TextStyle.Foreground(ui.Palette.Fg)
+	model.PlaceholderStyle = model.PlaceholderStyle.Foreground(ui.Palette.FgMuted).Italic(true)
+	model.Cursor.Style = model.Cursor.Style.Foreground(ui.Palette.FgHighlight)
+	// The char under a blurred cursor renders via Cursor.TextStyle, which
+	// bubbles leaves at its zero value; without this it shows the terminal's
+	// default color instead of the theme's text color.
+	model.Cursor.TextStyle = model.TextStyle
+	model.PromptStyle = model.PromptStyle.Foreground(ui.Palette.FgHighlight)
+	return model
+}
+
+// SetSize applies the given dimensions to the form and propagates the input
+// viewport width to every text input. Values injected via SetUserFields before
+// the first Update (e.g. when the popup opens) are then windowed correctly
+// even while the input is blurred, since bubbles' textinput only recomputes
+// its overflow window in Update when focused.
+func (m *Model) SetSize(width, height int) {
+	m.Width = width
+	m.Height = height
+	m.syncInputWidths()
+}
+
+// syncInputWidths keeps every text input's viewport within the form layout.
+func (m *Model) syncInputWidths() {
+	for i := range m.Inputs {
+		m.Inputs[i].Width = max(1, m.Width-inputGutter)
+	}
+}
+
 // Populates input fields from user data
 func (m *Model) SetUserFields(u model.User) {
+	m.syncInputWidths()
 	m.Inputs[0].SetValue(u.Name)
 	m.Inputs[1].SetValue(u.Email)
 	m.Inputs[2].SetValue(u.SshKey)
+
+	// SetValue leaves the cursor at the end, which scrolls an overflowing
+	// value (the ssh key) to its tail; start at the head instead.
+	for i := range m.Inputs {
+		m.Inputs[i].CursorStart()
+	}
 
 	// The selector only carries the assignable levels; the Owner level is not
 	// selectable in the dashboard, so leave the selector untouched for it.
@@ -399,6 +435,8 @@ func NewUserModificationFormModel() Model {
 }
 
 func (m *Model) ClearInputs() {
+
+	m.syncInputWidths()
 
 	for i := range m.Inputs {
 		m.Inputs[i].SetValue("")
