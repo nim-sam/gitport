@@ -10,7 +10,7 @@
 </p>
 
 <p align=center> 
-GitPort is a self-hosted Git server designed for local area networks (LANs), making it easy to share and collaborate on Git repositories without relying on external hosting services.
+GitPort is a <b> self-hosted Git server </b> designed for local area networks (LANs), making it easy to share and collaborate on Git repositories <b> without relying on external hosting services. </b>
 </p>
  
 <!-- > * Point GitPort at a Git repository to serve it over SSH. It includes a built-in terminal UI (TUI) dashboard for managing access, browsing commits, and monitoring server activity.
