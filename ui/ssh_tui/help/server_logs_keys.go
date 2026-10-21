@@ -17,7 +17,7 @@ func (k ServerLogsKeys) ShortHelp() []key.Binding {
 }
 
 func (k ServerLogsKeys) FullHelp() [][]key.Binding {
-	return [][]key.Binding{{k.VNav, k.Tab, k.Quit}}
+	return [][]key.Binding{}
 }
 
 var serverLogsKeys = ServerLogsKeys{
