@@ -143,7 +143,7 @@ func (m Model) View() string {
 		Border(lipgloss.RoundedBorder()).
 		BorderRow(true).
 		BorderStyle(lipgloss.NewStyle().Foreground(ui.Palette.Border)).
-		Width(m.width-2).
+		Width(m.width).
 		Height(m.height-2).
 		Rows(
 			[]string{
