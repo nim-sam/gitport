@@ -21,6 +21,7 @@ import (
 	"github.com/nim-sam/gitport/ui/ssh_tui/form"
 	"github.com/nim-sam/gitport/ui/ssh_tui/help"
 	serverlogs "github.com/nim-sam/gitport/ui/ssh_tui/server_logs"
+	serveroverview "github.com/nim-sam/gitport/ui/ssh_tui/server_overview"
 	userdetail "github.com/nim-sam/gitport/ui/ssh_tui/user_detail"
 	userlist "github.com/nim-sam/gitport/ui/ssh_tui/user_list"
 )
@@ -58,7 +59,8 @@ const (
 type tabFocus int
 
 const (
-	userManagement tabFocus = iota
+	serverOverview tabFocus = iota
+	userManagement
 	commitHistory
 	serverLogs
 )
@@ -97,6 +99,9 @@ type Model struct {
 	// Panel widths
 	leftWidth  int
 	rightWidth int
+
+	// Server overview dashboard
+	serverOverview serveroverview.Model
 
 	// Git diff commitViewport
 	commitViewport commitviewport.Model
@@ -144,11 +149,13 @@ func New(users []model.User, commits []model.Commit, logs []model.Log, width, he
 
 	nav := navigator.New()
 	nav.Title = "GitPort"
-	nav.SetTabs("User Management", "Commit History", "Server Logs")
+	nav.SetTabs("Overview", "Members", "Commits", "Logs")
 
 	dia := dialog.New()
 
 	u := userlist.New(users)
+
+	so := serveroverview.New()
 
 	ucf := form.NewUserCreationFormModel()
 
@@ -168,6 +175,7 @@ func New(users []model.User, commits []model.Commit, logs []model.Log, width, he
 	m := Model{
 		commitViewport:            v,
 		navigator:                 nav,
+		serverOverview:            so,
 		userList:                  u,
 		userDetail:                ud,
 		commits:                   commits,
@@ -220,6 +228,9 @@ func (m *Model) resize(width, height int) {
 	// Left-Right panel dimensions
 	m.leftWidth = int(float32(m.innerWidth) * 0.50)
 	m.rightWidth = m.innerWidth - m.leftWidth - 2
+
+	m.serverOverview.Width(m.innerWidth)
+	m.serverOverview.Height(m.innerHeight)
 
 	// commitViewport inherits dimensions from right panel
 	m.commitViewport.Height(m.innerHeight + 2)
@@ -513,6 +524,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Passing messages to dashboard sub-models
 	var SubmodelUpdateCmd tea.Cmd
 	switch m.tab {
+	case serverOverview:
+		m.serverOverview, _ = m.serverOverview.Update(msg)
 	case userManagement:
 
 		switch m.state {
@@ -614,6 +627,9 @@ func (m Model) View() string {
 	// Tab View Content Management
 
 	switch m.tab {
+	// Server Overview Tab
+	case serverOverview:
+		fullPanelContent = m.serverOverview.View()
 	// User Management Tab
 	case userManagement:
 		switch m.state {
@@ -670,6 +686,8 @@ func (m Model) View() string {
 	// Panel styling per tab and panel focus
 
 	switch m.tab {
+	case serverOverview:
+		fullPanelStyle = blankStyle.Width(m.innerWidth+2)
 	case userManagement:
 		// switch m.focus {
 		// case leftPanel:
@@ -760,6 +778,8 @@ func (m Model) View() string {
 	// Setup configuarion with respect to tab focused
 
 	switch m.tab {
+	case serverOverview:
+		screenSetup = fullScreenSetup
 	case userManagement:
 		screenSetup = splitScreenSetup
 	case commitHistory:
