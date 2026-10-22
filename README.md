@@ -3,7 +3,7 @@
 <p align="center"> <img src="img/gitport_logo.png" width="300" alt="GitPort  Logo"> </p>
 
 <p align="center">
-  <a href="https://golang.org"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white" alt="Go version"></a>
+  <a href="https://golang.org"><img src="https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white" alt="Go version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/nim-sam/gitport" alt="License"></a>
   <a href="https://github.com/nim-sam/gitport/releases"><img src="https://img.shields.io/github/v/release/youruser/gitport" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS-lightgrey" alt="Platform">
