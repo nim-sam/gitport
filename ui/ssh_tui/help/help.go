@@ -27,14 +27,14 @@ type Model struct {
 // package-level keys are copied first so disabling never leaks across sessions.
 func New(admin bool) Model {
 
-	// TUI opens user management tab on startup, so we set user management keys
-	// as defualt keybinds for the help bar
+	// The TUI opens the server overview tab on startup, so its keys are the
+	// default shown in the help bar.
 
 	var k DashboardKeys
 	if admin {
-		k = userManagementKeysAdmin
+		k = serverOverviewKeysAdmin
 	} else {
-		k = userManagementKeysNonAdmin
+		k = serverOverviewKeysNonAdmin
 	}
 
 	return Model{
@@ -82,6 +82,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 					m.help.ShowAll = !m.help.ShowAll
 				}
 			case 1:
+				if m.admin {
+					m.help.ShowAll = !m.help.ShowAll
+				}
+			case 2:
 				m.help.ShowAll = !m.help.ShowAll
 			}
 		}
@@ -95,13 +99,19 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch m.currentTab {
 		case 0:
 			if m.admin {
+				m.keys = serverOverviewKeysAdmin
+			} else {
+				m.keys = serverOverviewKeysNonAdmin
+			}
+		case 1:
+			if m.admin {
 				m.keys = userManagementKeysAdmin
 			} else {
 				m.keys = userManagementKeysNonAdmin
 			}
-		case 1:
-			m.keys = commitHistoryKeys
 		case 2:
+			m.keys = commitHistoryKeys
+		case 3:
 			m.keys = serverLogsKeys
 		}
 	}
