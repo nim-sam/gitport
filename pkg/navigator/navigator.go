@@ -17,11 +17,12 @@ type Model struct {
 }
 
 type Styles struct {
-	Title      lipgloss.Style
-	TabsBar    lipgloss.Style
-	TabFocused lipgloss.Style
-	TabBlurred lipgloss.Style
-	Separator  lipgloss.Style
+	Title        lipgloss.Style
+	TabsBar      lipgloss.Style
+	TabFocused   lipgloss.Style
+	TabBlurred   lipgloss.Style
+	Separator    lipgloss.Style
+	TabSeparator lipgloss.Style
 }
 
 func (m Model) Init() tea.Cmd {
@@ -78,7 +79,14 @@ func (m Model) View() string {
 		} else {
 			styledTab = m.Styles.TabBlurred.Render(m.Tabs[i])
 		}
+
 		tabStyles = append(tabStyles, styledTab)
+
+		if i != len(m.Tabs)-1 {
+			tabStyles = append(tabStyles,
+				m.Styles.TabSeparator.Render("·"),
+			)
+		}
 	}
 
 	m.Styles.Title = m.Styles.Title.Width(len(m.Title) + 2)
