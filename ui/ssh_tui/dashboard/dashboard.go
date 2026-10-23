@@ -149,7 +149,7 @@ func New(users []model.User, commits []model.Commit, logs []model.Log, width, he
 
 	nav := navigator.New()
 	nav.Title = "GitPort"
-	nav.SetTabs("Overview", "Members", "Commits", "Logs")
+	nav.SetTabs(" Overview", " User Management", " Commit History", "󱘲 Logs")
 
 	dia := dialog.New()
 
