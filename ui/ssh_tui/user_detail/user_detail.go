@@ -51,16 +51,17 @@ var (
 )
 
 type Model struct {
-	Width    int
-	Height   int
-	user     model.User
-	activity model.Activity
-	table    table.Model
-	// focused          bool
+	Width            int
+	Height           int
+	user             model.User
+	activity         model.Activity
+	table            table.Model
 	mostRecentCommit model.Commit
 }
 
-func (m Model) Init() tea.Cmd { return nil }
+func (m Model) Init() tea.Cmd {
+	return nil
+}
 
 // Update forwards key events to the commit table while the panel is focused so
 // the table's viewport can be scrolled.
