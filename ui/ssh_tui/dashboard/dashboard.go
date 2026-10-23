@@ -156,6 +156,7 @@ func New(users []model.User, commits []model.Commit, logs []model.Log, width, he
 	u := userlist.New(users)
 
 	so := serveroverview.New()
+	so.SetEditable(current.AccessLevel.CanManage())
 
 	ucf := form.NewUserCreationFormModel()
 
@@ -229,7 +230,7 @@ func (m *Model) resize(width, height int) {
 	m.leftWidth = int(float32(m.innerWidth) * 0.50)
 	m.rightWidth = m.innerWidth - m.leftWidth - 2
 
-	m.serverOverview.Width(m.innerWidth)
+	m.serverOverview.Width(m.leftWidth)
 	m.serverOverview.Height(m.innerHeight)
 
 	// commitViewport inherits dimensions from right panel
@@ -519,13 +520,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.focus = fullPanel
 			}
 		}
+
+		// Re-check the permission to edit the server config whenever the
+		// overview tab is entered, so a role change applies without a
+		// reconnect.
+		if m.tab == serverOverview {
+			m.serverOverview.SetEditable(m.canManage())
+		}
 	}
 
 	// Passing messages to dashboard sub-models
 	var SubmodelUpdateCmd tea.Cmd
 	switch m.tab {
 	case serverOverview:
-		m.serverOverview, _ = m.serverOverview.Update(msg)
+		m.serverOverview, SubmodelUpdateCmd = m.serverOverview.Update(msg)
+		cmds = append(cmds, SubmodelUpdateCmd)
 	case userManagement:
 
 		switch m.state {
@@ -609,9 +618,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	var navCmd tea.Cmd
-	m.navigator, navCmd = m.navigator.Update(msg)
-	cmds = append(cmds, navCmd)
+	// Tab switching is suppressed while the server config form has unsaved
+	// changes, so editing cannot be abandoned accidentally.
+	if !(m.tab == serverOverview && m.serverOverview.Editing() && isTabKey(msg)) {
+		var navCmd tea.Cmd
+		m.navigator, navCmd = m.navigator.Update(msg)
+		cmds = append(cmds, navCmd)
+	}
 
 	m.help, _ = m.help.Update(msg)
 
@@ -629,7 +642,7 @@ func (m Model) View() string {
 	switch m.tab {
 	// Server Overview Tab
 	case serverOverview:
-		fullPanelContent = m.serverOverview.View()
+		leftPanelContent = m.serverOverview.View()
 	// User Management Tab
 	case userManagement:
 		switch m.state {
@@ -659,6 +672,7 @@ func (m Model) View() string {
 	m.navigator.Styles.TabBlurred = m.navigator.Styles.TabBlurred.Foreground(ui.Palette.FgMuted)
 	m.navigator.Styles.TabFocused = m.navigator.Styles.TabFocused.Foreground(ui.Palette.Fg).BorderForeground(ui.Palette.Fg)
 	m.navigator.Styles.Separator = m.navigator.Styles.Separator.Foreground(ui.Palette.FgMuted).Bold(true)
+	m.navigator.Styles.TabSeparator = m.navigator.Styles.TabSeparator.Foreground(ui.Palette.FgMuted).Bold(true)
 	navigatorContainer := lipgloss.NewStyle().Padding(0, 1)
 
 	// Panel Styling
@@ -687,7 +701,7 @@ func (m Model) View() string {
 
 	switch m.tab {
 	case serverOverview:
-		fullPanelStyle = blankStyle.Width(m.innerWidth+2)
+		leftPanelStyle = blankStyle.Width(m.innerWidth + 2)
 	case userManagement:
 		// switch m.focus {
 		// case leftPanel:
@@ -779,7 +793,7 @@ func (m Model) View() string {
 
 	switch m.tab {
 	case serverOverview:
-		screenSetup = fullScreenSetup
+		screenSetup = splitScreenSetup
 	case userManagement:
 		screenSetup = splitScreenSetup
 	case commitHistory:
@@ -824,4 +838,17 @@ func (m Model) View() string {
 	}
 
 	return output
+}
+
+// isTabKey reports whether msg is a tab or shift+tab key press.
+func isTabKey(msg tea.Msg) bool {
+	key, ok := msg.(tea.KeyMsg)
+	if !ok {
+		return false
+	}
+	switch key.String() {
+	case "tab", "shift+tab":
+		return true
+	}
+	return false
 }
