@@ -72,7 +72,7 @@ func New(commits []model.Commit) Model {
 				author:  commit.Author,
 				hash:    commit.Hash[:6],
 				message: commit.Message,
-				date:    commit.Date,
+				date:    commit.Date.Format(model.DateLayout),
 			},
 		)
 	}

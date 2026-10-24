@@ -2,7 +2,6 @@ package repository
 
 import (
 	"sort"
-	"time"
 
 	"github.com/nim-sam/gitport/internal/model"
 	orm "github.com/nim-sam/gitport/pkg/mini_orm"
@@ -28,7 +27,7 @@ func LoadCommitsNewestFirst() []model.Commit {
 	}
 
 	sort.Slice(commits, func(i, j int) bool {
-		di, dj := commitDate(commits[i]), commitDate(commits[j])
+		di, dj := commits[i].Date, commits[j].Date
 		if !di.Equal(dj) {
 			return di.After(dj)
 		}
@@ -36,15 +35,4 @@ func LoadCommitsNewestFirst() []model.Commit {
 	})
 
 	return commits
-}
-
-// commitDate parses a stored commit date, returning the zero time when the
-// date is missing or malformed so such rows sink to the end of date-desc
-// orderings.
-func commitDate(c model.Commit) time.Time {
-	t, err := time.Parse(model.DateLayout, c.Date)
-	if err != nil {
-		return time.Time{}
-	}
-	return t
 }

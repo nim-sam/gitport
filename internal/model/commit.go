@@ -1,6 +1,8 @@
 package model
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -14,6 +16,6 @@ type Commit struct {
 	Author  string
 	Hash    string
 	Message string
-	Date    string
+	Date    time.Time
 	Diff    string
 }

@@ -110,7 +110,7 @@ func (m *Model) SetCommits(commits []model.Commit) {
 	for _, c := range commits {
 		rows = append(rows, table.Row{
 			shortHash(c.Hash),
-			c.Date,
+			c.Date.Format(model.DateLayout),
 			subject(c.Message),
 		})
 	}
@@ -180,7 +180,7 @@ func (m Model) View() string {
 					commitTitle,
 				),
 				mostRecentCommitMetadata.Render(
-					m.mostRecentCommit.Author+" @ "+m.mostRecentCommit.Date,
+					m.mostRecentCommit.Author+" @ "+m.mostRecentCommit.Date.Format(model.DateLayout),
 				),
 			),
 		)
