@@ -517,24 +517,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case navigator.NavigatorMsg:
-		previousTab := m.tab
-		m.tab = tabFocus(msg.GetCurrentTab())
+		if m.state == DefaultState {
+			previousTab := m.tab
+			m.tab = tabFocus(msg.GetCurrentTab())
 
-		// Reset Focus when switching tabs
-		if m.tab != previousTab {
-			switch m.tab {
-			case userManagement, commitHistory:
-				m.focus = leftPanel
-			case serverLogs:
-				m.focus = fullPanel
+			// Reset Focus when switching tabs
+			if m.tab != previousTab {
+				switch m.tab {
+				case userManagement, commitHistory:
+					m.focus = leftPanel
+				case serverLogs:
+					m.focus = fullPanel
+				}
 			}
-		}
 
-		// Re-check the permission to edit the server config whenever the
-		// overview tab is entered, so a role change applies without a
-		// reconnect.
-		if m.tab == serverOverview {
-			m.serverOverview.SetEditable(m.canManage())
+			// Re-check the permission to edit the server config whenever the
+			// overview tab is entered, so a role change applies without a
+			// reconnect.
+			if m.tab == serverOverview {
+				m.serverOverview.SetEditable(m.canManage())
+			}
 		}
 	}
 
@@ -631,7 +633,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// changes, so editing cannot be abandoned accidentally.
 	if !(m.tab == serverOverview && m.serverOverview.Editing() && isTabKey(msg)) {
 		var navCmd tea.Cmd
-		m.navigator, navCmd = m.navigator.Update(msg)
+		if m.state == DefaultState {
+			m.navigator, navCmd = m.navigator.Update(msg)
+		}
 		cmds = append(cmds, navCmd)
 	}
 
