@@ -240,7 +240,7 @@ func (m *Model) resize(width, height int) {
 	m.serverOverview.Width(m.leftWidth)
 	m.serverOverview.Height(m.innerHeight)
 
-	m.commitGraph.SetSize(m.rightWidth+2, m.innerHeight+2)
+	m.commitGraph.SetSize(m.rightWidth, m.innerHeight)
 
 	// commitViewport inherits dimensions from right panel
 	m.commitViewport.Height(m.innerHeight + 2)
