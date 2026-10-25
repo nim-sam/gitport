@@ -102,7 +102,7 @@ func loadCommits(repo *git.Repository, limit int) []model.Commit {
 				Author:  c.Author.Name,
 				Hash:    c.Hash.String(),
 				Message: message,
-				Date:    c.Author.When.Format(model.DateLayout),
+				Date:    c.Author.When,
 			})
 		return nil
 	})
