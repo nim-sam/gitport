@@ -3,6 +3,8 @@ module github.com/nim-sam/gitport
 go 1.26.8
 
 require (
+	charm.land/lipgloss/v2 v2.0.6
+	github.com/NimbleMarkets/ntcharts/v2 v2.8.0
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -22,10 +24,8 @@ require (
 require (
 	charm.land/bubbles/v2 v2.2.1 // indirect
 	charm.land/bubbletea/v2 v2.0.10 // indirect
-	charm.land/lipgloss/v2 v2.0.6 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/NimbleMarkets/ntcharts/v2 v2.8.0 // indirect
 	github.com/ProtonMail/go-crypto v1.1.5 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
