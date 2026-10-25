@@ -16,6 +16,7 @@ import (
 	"github.com/nim-sam/gitport/pkg/navigator"
 
 	"github.com/nim-sam/gitport/ui"
+	commitgraph "github.com/nim-sam/gitport/ui/ssh_tui/commit_graph"
 	commithistory "github.com/nim-sam/gitport/ui/ssh_tui/commit_history"
 	commitviewport "github.com/nim-sam/gitport/ui/ssh_tui/commit_viewport"
 	"github.com/nim-sam/gitport/ui/ssh_tui/form"
@@ -103,6 +104,9 @@ type Model struct {
 	// Server overview dashboard
 	serverOverview serveroverview.Model
 
+	// Commit graph
+	commitGraph commitgraph.Model
+
 	// Git diff commitViewport
 	commitViewport commitviewport.Model
 
@@ -158,6 +162,8 @@ func New(users []model.User, commits []model.Commit, logs []model.Log, width, he
 	so := serveroverview.New()
 	so.SetEditable(current.AccessLevel.CanManage())
 
+	cg := commitgraph.New(commits)
+
 	ucf := form.NewUserCreationFormModel()
 
 	umf := form.NewUserModificationFormModel()
@@ -177,6 +183,7 @@ func New(users []model.User, commits []model.Commit, logs []model.Log, width, he
 		commitViewport:            v,
 		navigator:                 nav,
 		serverOverview:            so,
+		commitGraph:               cg,
 		userList:                  u,
 		userDetail:                ud,
 		commits:                   commits,
@@ -232,6 +239,8 @@ func (m *Model) resize(width, height int) {
 
 	m.serverOverview.Width(m.leftWidth)
 	m.serverOverview.Height(m.innerHeight)
+
+	m.commitGraph.SetSize(m.rightWidth+2, m.innerHeight+2)
 
 	// commitViewport inherits dimensions from right panel
 	m.commitViewport.Height(m.innerHeight + 2)
@@ -643,6 +652,7 @@ func (m Model) View() string {
 	// Server Overview Tab
 	case serverOverview:
 		leftPanelContent = m.serverOverview.View()
+		rightPanelContent = m.commitGraph.View()
 	// User Management Tab
 	case userManagement:
 		switch m.state {
@@ -701,7 +711,8 @@ func (m Model) View() string {
 
 	switch m.tab {
 	case serverOverview:
-		leftPanelStyle = blankStyle.Width(m.innerWidth + 2)
+		leftPanelStyle = blankStyle.Width(m.leftWidth + 2)
+		rightPanelStyle = blankStyle
 	case userManagement:
 		// switch m.focus {
 		// case leftPanel:
