@@ -45,5 +45,5 @@ changelog:
 release:
   github:
     owner: nim-sam
-    name: gitport-go
+    name: gitport
   prerelease: auto
