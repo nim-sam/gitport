@@ -51,13 +51,17 @@ var (
 )
 
 type Model struct {
-	Width            int
-	Height           int
+	width            int
+	height           int
 	user             model.User
 	activity         model.Activity
 	table            table.Model
 	mostRecentCommit model.Commit
 }
+
+// Dimension setters
+func (m *Model) Width(width int)   { m.width = width }
+func (m *Model) Height(height int) { m.height = height }
 
 func (m Model) Init() tea.Cmd {
 	return nil
@@ -122,8 +126,8 @@ func (m *Model) SetCommits(commits []model.Commit) {
 
 // SetSize gives the panel its total footprint, border included.
 func (m *Model) SetSize(width, height int) {
-	m.Width = width
-	m.Height = height
+	m.width = width
+	m.height = height
 
 	inner := m.innerWidth()
 	cols := m.table.Columns()
@@ -138,19 +142,19 @@ func (m *Model) SetSize(width, height int) {
 	}
 
 	m.table.SetWidth(inner)
-	m.table.SetHeight(m.Height - 11)
+	m.table.SetHeight(m.height - 11)
 }
 
 func (m Model) View() string {
 
 	// sectionTitleStyle := lipgloss.NewStyle().
-	// 	Width(m.Width - 2).
+	// 	Width(m.width - 2).
 	// 	AlignHorizontal(lipgloss.Center).
 	// 	Italic(true).
 	// 	Foreground(ui.Palette.FgMuted)
 
 	nameTitleStyle := lipgloss.NewStyle().
-		Width(m.Width - 2).
+		Width(m.width - 2).
 		AlignHorizontal(lipgloss.Center).
 		Bold(true).
 		Foreground(ui.Palette.FgHighlight)
@@ -163,14 +167,14 @@ func (m Model) View() string {
 		Foreground(ui.Palette.FgMuted).
 		Italic(true)
 
-	mostRecentCommitContainer := lipgloss.NewStyle().Height(2).Width(m.Width-4).Padding(0, 1)
+	mostRecentCommitContainer := lipgloss.NewStyle().Height(2).Width(m.width-4).Padding(0, 1)
 
 	var mostRecentCommitView string
 	if (m.mostRecentCommit != model.Commit{}) {
 
 		commitTitle := "[" + m.mostRecentCommit.Hash[:6] + "] " + subject(m.mostRecentCommit.Message)
-		if len(commitTitle) > m.Width-7 {
-			commitTitle = commitTitle[:m.Width-7] + "…"
+		if len(commitTitle) > m.width-7 {
+			commitTitle = commitTitle[:m.width-7] + "…"
 		}
 
 		mostRecentCommitView = mostRecentCommitContainer.Render(
@@ -196,8 +200,8 @@ func (m Model) View() string {
 		Border(lipgloss.RoundedBorder()).
 		BorderRow(true).
 		BorderStyle(lipgloss.NewStyle().Foreground(ui.Palette.Border)).
-		Width(m.Width).
-		Height(m.Height).
+		Width(m.width).
+		Height(m.height).
 		Rows(
 			[]string{
 				nameTitleStyle.Render(m.user.Name),
@@ -264,10 +268,10 @@ func (m Model) activityRow() string {
 
 // innerWidth is the number of cells available between the panel's side borders.
 func (m Model) innerWidth() int {
-	if m.Width > 2 {
-		return m.Width - 2
+	if m.width > 2 {
+		return m.width - 2
 	}
-	return m.Width
+	return m.width
 }
 
 // shortHash abbreviates a commit hash. The zero commit of an empty repository

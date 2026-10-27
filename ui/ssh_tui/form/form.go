@@ -21,8 +21,8 @@ type Model struct {
 	Inputs        []textinput.Model
 	selectedInput int
 	Selector      selector.Model
-	Width         int
-	Height        int
+	width         int
+	height        int
 	buttonMsg     string
 	title         string
 	errMsg        string
@@ -37,6 +37,10 @@ type Model struct {
 	accessLocked bool
 	lockedAccess model.AccessLevel
 }
+
+// Dimension setters
+func (m *Model) Width(width int)   { m.width = width; m.syncInputWidths() }
+func (m *Model) Height(height int) { m.height = height }
 
 func (m Model) Init() tea.Cmd {
 	return nil
@@ -121,7 +125,7 @@ func (m Model) View() string {
 
 	// Styling form title
 	titleStyle := lipgloss.NewStyle().
-		Width(m.Width-2).
+		Width(m.width-2).
 		Bold(true).
 		Foreground(ui.Palette.FgHighlight).
 		AlignHorizontal(lipgloss.Center).
@@ -179,17 +183,17 @@ func (m Model) View() string {
 	}
 
 	// Composing the form
-	titleBar := lipgloss.NewStyle().Width(m.Width).AlignHorizontal(lipgloss.Center)
-	composition := lipgloss.NewStyle().Width(m.Width-2).Height(m.Height-5).Padding(0, 1).AlignVertical(lipgloss.Center).AlignHorizontal(lipgloss.Center)
-	inputsContainer := lipgloss.NewStyle().Width(m.Width-8-promptStyle.GetWidth()).Height(3).Padding(0, 1)
-	buttonContainer := lipgloss.NewStyle().Width(m.Width).Height(3).Align(lipgloss.Center, lipgloss.Center)
+	titleBar := lipgloss.NewStyle().Width(m.width).AlignHorizontal(lipgloss.Center)
+	composition := lipgloss.NewStyle().Width(m.width-2).Height(m.height-5).Padding(0, 1).AlignVertical(lipgloss.Center).AlignHorizontal(lipgloss.Center)
+	inputsContainer := lipgloss.NewStyle().Width(m.width-8-promptStyle.GetWidth()).Height(3).Padding(0, 1)
+	buttonContainer := lipgloss.NewStyle().Width(m.width).Height(3).Align(lipgloss.Center, lipgloss.Center)
 
 	// Submit button, with the validation error stacked above it when a
 	// required field is missing. Both lines share a width so they centre
 	// together within the button container.
 	buttonView := button.Render(m.buttonMsg)
 	if m.errMsg != "" {
-		lineStyle := lipgloss.NewStyle().Width(m.Width).AlignHorizontal(lipgloss.Center)
+		lineStyle := lipgloss.NewStyle().Width(m.width).AlignHorizontal(lipgloss.Center)
 		buttonView = lipgloss.JoinVertical(lipgloss.Top,
 			lineStyle.Foreground(ui.Palette.FgMuted).Italic(true).Render(m.errMsg),
 			lineStyle.Render(buttonView),
@@ -235,21 +239,10 @@ func styleForView(model textinput.Model) textinput.Model {
 	return model
 }
 
-// SetSize applies the given dimensions to the form and propagates the input
-// viewport width to every text input. Values injected via SetUserFields before
-// the first Update (e.g. when the popup opens) are then windowed correctly
-// even while the input is blurred, since bubbles' textinput only recomputes
-// its overflow window in Update when focused.
-func (m *Model) SetSize(width, height int) {
-	m.Width = width
-	m.Height = height
-	m.syncInputWidths()
-}
-
 // syncInputWidths keeps every text input's viewport within the form layout.
 func (m *Model) syncInputWidths() {
 	for i := range m.Inputs {
-		m.Inputs[i].Width = max(1, m.Width-inputGutter)
+		m.Inputs[i].Width = max(1, m.width-inputGutter)
 	}
 }
 

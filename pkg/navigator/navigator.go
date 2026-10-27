@@ -11,10 +11,12 @@ type Model struct {
 	selectedTab int
 	size        int
 	Styles      Styles
-	Height      int
-	Width       int
+	width       int
 	Separator   string
 }
+
+// Dimension setter
+func (m *Model) Width(width int) { m.width = width }
 
 type Styles struct {
 	Title        lipgloss.Style
@@ -90,7 +92,7 @@ func (m Model) View() string {
 	}
 
 	m.Styles.Title = m.Styles.Title.Width(len(m.Title) + 2)
-	m.Styles.TabsBar = m.Styles.TabsBar.Width(m.Width - len(m.Title) - 2)
+	m.Styles.TabsBar = m.Styles.TabsBar.Width(m.width - len(m.Title) - 2)
 
 	return lipgloss.JoinHorizontal(lipgloss.Left,
 		m.Styles.Title.Render(m.Title),

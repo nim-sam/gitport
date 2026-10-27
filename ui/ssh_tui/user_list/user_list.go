@@ -11,11 +11,15 @@ import (
 // User List
 
 type Model struct {
-	Width     int
-	Height    int
+	width     int
+	height    int
 	ListModel list.Model
 	UserData  []model.User
 }
+
+// Dimension setters
+func (m *Model) Width(width int)   { m.width = width }
+func (m *Model) Height(height int) { m.height = height }
 
 func (u Model) Init() tea.Cmd {
 	return nil

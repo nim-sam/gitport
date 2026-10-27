@@ -60,6 +60,10 @@ type Model struct {
 	statusMsg     string
 }
 
+// Dimension setters
+func (m *Model) Width(width int)   { m.width = width }
+func (m *Model) Height(height int) { m.height = height }
+
 func New() Model {
 	root, err := os.Getwd()
 	if err != nil {
@@ -92,15 +96,6 @@ func newInputs() []textinput.Model {
 
 func (m *Model) Init() tea.Cmd {
 	return nil
-}
-
-func (m *Model) Width(w int) {
-	m.width = w
-}
-
-func (m *Model) Height(h int) {
-	m.height = h
-
 }
 
 // SetEditable injects the current session's permission to change the config.

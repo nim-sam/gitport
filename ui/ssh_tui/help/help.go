@@ -11,8 +11,8 @@ type Model struct {
 	keys    DashboardKeys
 	help    help.Model
 	lastKey string
-	Width   int
-	Height  int
+	width   int
+	height  int
 
 	// admin gates the full help view. Non-admins only get the short help bar:
 	// the user-management bindings and the "?" toggle are removed entirely.
@@ -21,6 +21,10 @@ type Model struct {
 	// internal value storage for current tab
 	currentTab int
 }
+
+// Dimension setters
+func (m *Model) Width(width int)   { m.width = width }
+func (m *Model) Height(height int) { m.height = height }
 
 // New builds the help model. When admin is false the user-management
 // keybindings and the help toggle are disabled so they never appear; the
@@ -40,7 +44,7 @@ func New(admin bool) Model {
 	return Model{
 		keys:   k,
 		help:   help.New(),
-		Height: 2,
+		height: 2,
 		admin:  admin,
 	}
 }
@@ -121,7 +125,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 
-	helpContainer := lipgloss.NewStyle().Width(m.Width).Height(m.Height).AlignHorizontal(lipgloss.Center)
+	helpContainer := lipgloss.NewStyle().Width(m.width).Height(m.height).AlignHorizontal(lipgloss.Center)
 
 	return helpContainer.Render(m.help.View(m.keys))
 }

@@ -21,10 +21,14 @@ type Model struct {
 	selectedCommit int
 	ListModel      list.Model
 	commits        []model.Commit
-	Width          int
-	Height         int
+	width          int
+	height         int
 	focused        bool
 }
+
+// Dimension setters
+func (m *Model) Width(width int)   { m.width = width }
+func (m *Model) Height(height int) { m.height = height }
 
 func (c Model) Init() tea.Cmd {
 	// Sends currently selected commit instance through a CommitSelectionMsg upon
@@ -40,7 +44,7 @@ func (c Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	// Update list model
-	c.ListModel.SetSize(c.Width, c.Height)
+	c.ListModel.SetSize(c.width, c.height)
 
 	if c.focused {
 		c.ListModel, _ = c.ListModel.Update(msg)
@@ -57,7 +61,7 @@ func (c Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (c Model) View() string {
 
 	container := lipgloss.NewStyle().
-		Width(c.Width)
+		Width(c.width)
 
 	return container.Render(c.ListModel.View())
 }

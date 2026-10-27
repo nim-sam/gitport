@@ -71,6 +71,10 @@ type Model struct {
 	commitMsg       string
 }
 
+// Dimension setters
+func (m *Model) Width(width int)   { m.width = width }
+func (m *Model) Height(height int) { m.height = height }
+
 func (m Model) Init() tea.Cmd {
 	return nil
 }
@@ -162,10 +166,6 @@ func (m Model) View() string {
 
 	return contentContainer.Render()
 }
-
-// Width and height setters
-func (m *Model) Width(w int) *Model  { m.width = w; return m }
-func (m *Model) Height(h int) *Model { m.height = h; return m }
 
 // subject returns the first line of a commit message. go-git stores the whole
 // message (subject plus optional body) on a single string, so anything that

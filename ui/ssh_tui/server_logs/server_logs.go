@@ -10,29 +10,33 @@ import (
 
 type Model struct {
 	table  table.Model
-	Width  int
-	Height int
+	width  int
+	height int
 }
 
-func (s Model) Init() tea.Cmd { return nil }
-func (s Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+// Dimension setters
+func (m *Model) Width(width int)   { m.width = width }
+func (m *Model) Height(height int) { m.height = height }
+
+func (m Model) Init() tea.Cmd { return nil }
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	// Updating column widths
-	c := s.table.Columns()
+	c := m.table.Columns()
 	c[0].Width = 10
 	c[1].Width = 25
-	c[2].Width = s.Width - (c[0].Width + c[1].Width) - 4
-	s.table.SetColumns(c)
+	c[2].Width = m.width - (c[0].Width + c[1].Width) - 4
+	m.table.SetColumns(c)
 
 	// General updates
-	s.table, _ = s.table.Update(msg)
-	s.table.SetWidth(s.Width - 4)
-	s.table.SetHeight(s.Height - 2)
-	return s, nil
+	m.table, _ = m.table.Update(msg)
+	m.table.SetWidth(m.width - 4)
+	m.table.SetHeight(m.height - 2)
+	return m, nil
 }
-func (s Model) View() string {
+func (m Model) View() string {
 
-	s.table.SetStyles(table.Styles{
+	m.table.SetStyles(table.Styles{
 		Selected: lipgloss.NewStyle().
 			Foreground(ui.Palette.Accent).
 			Bold(true),
@@ -44,7 +48,7 @@ func (s Model) View() string {
 	})
 
 	tableContainer := lipgloss.NewStyle().AlignHorizontal(lipgloss.Left).Padding(0, 2)
-	return tableContainer.Render(s.table.View())
+	return tableContainer.Render(m.table.View())
 }
 
 func New(l []model.Log) Model {

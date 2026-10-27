@@ -25,11 +25,15 @@ type Model struct {
 	Style      Style  // Dialog styles
 
 	// Dimensions
-	Width  int
-	Height int
+	width  int
+	height int
 
 	selectedButton selectedButton
 }
+
+// Dimension setters
+func (m *Model) Width(width int)   { m.width = width }
+func (m *Model) Height(height int) { m.height = height }
 
 // Dialog Model styles
 type Style struct {
@@ -75,24 +79,24 @@ func (m Model) View() string {
 
 	// Containers
 	globalContainer := lipgloss.NewStyle().
-		Height(m.Height).
-		Width(m.Width).
+		Height(m.height).
+		Width(m.width).
 		Padding(0, 1)
 	buttonContainer := lipgloss.NewStyle().
 		Height(1).
 		AlignHorizontal(lipgloss.Center).
-		Width(m.Width)
+		Width(m.width)
 
 	// Style rendering
-	title := m.Style.Title.Width(m.Width - 2).
+	title := m.Style.Title.Width(m.width - 2).
 		AlignHorizontal(lipgloss.Center).
 		// Border(lipgloss.HiddenBorder(), false, false, true, false).
 		Height(1).
 		Render(m.Title)
-	prompt := m.Style.Prompt.Width(m.Width).
+	prompt := m.Style.Prompt.Width(m.width).
 		AlignHorizontal(lipgloss.Center).
 		AlignVertical(lipgloss.Center).
-		Height(m.Height - 5).
+		Height(m.height - 5).
 		Render(m.Prompt)
 
 	// Button selection
