@@ -240,7 +240,8 @@ func (m *Model) resize(width, height int) {
 	m.serverOverview.Width(m.leftWidth)
 	m.serverOverview.Height(m.innerHeight)
 
-	m.commitGraph.SetSize(m.rightWidth, m.innerHeight)
+	m.commitGraph.Height(m.innerHeight)
+	m.commitGraph.Width(m.rightWidth)
 
 	// commitViewport inherits dimensions from right panel
 	m.commitViewport.Height(m.innerHeight + 2)
@@ -248,36 +249,39 @@ func (m *Model) resize(width, height int) {
 
 	// UserDetail draws its own border, so it is sized to the panel's full outer
 	// dimensions rather than the inner content box.
-	m.userDetail.SetSize(m.rightWidth+2, m.innerHeight+2)
+	m.userDetail.Width(m.rightWidth + 2)
+	m.userDetail.Height(m.innerHeight + 2)
 
 	// Navigator inherits width from inner width
-	m.navigator.Width = m.innerWidth
+	m.navigator.Width(m.innerWidth)
 
 	// UserList inherits dimensions from left panel
-	m.userList.Height = m.innerHeight
-	m.userList.Width = m.leftWidth
-	m.userList.ListModel.SetSize(m.userList.Width, m.userList.Height)
+	m.userList.Height(m.innerHeight)
+	m.userList.Width(m.leftWidth)
+	m.userList.ListModel.SetSize(m.leftWidth, m.innerHeight)
 
 	// UserCreationForm inherits dimensions from right panel
-	m.userCreationForm.SetSize(m.rightWidth, int(float32(m.innerHeight)*2/3))
+	m.userCreationForm.Width(m.rightWidth)
+	m.userCreationForm.Height(int(float32(m.innerHeight) * 2 / 3))
 
 	// UserModificatoinForm inherits dimensions from right panel
-	m.userModificationForm.SetSize(m.rightWidth, int(float32(m.innerHeight)*2/3))
+	m.userModificationForm.Width(m.rightWidth)
+	m.userModificationForm.Height(int(float32(m.innerHeight) * 2 / 3))
 
 	// Dialog inherits dimensions from right panel
-	m.confirmUserDeletionDialog.Width = m.rightWidth
-	m.confirmUserDeletionDialog.Height = int(float32(m.innerHeight) * 2 / 3)
+	m.confirmUserDeletionDialog.Width(m.rightWidth)
+	m.confirmUserDeletionDialog.Height(int(float32(m.innerHeight) * 2 / 3))
 
 	// CommitHistory inherits dimensions from full panel
-	m.commitHistory.Height = m.innerHeight
-	m.commitHistory.Width = m.leftWidth
+	m.commitHistory.Height(m.innerHeight)
+	m.commitHistory.Width(m.leftWidth)
 
 	// ServerLogs inherits dimensions from full panel
-	m.serverLogs.Width = m.innerWidth
-	m.serverLogs.Height = m.innerHeight
+	m.serverLogs.Width(m.innerWidth)
+	m.serverLogs.Height(m.innerHeight)
 
-	// Help inherits dimenaions from innerWidth
-	m.help.Width = m.innerWidth
+	// Help inherits dimentions from innerWidth
+	m.help.Width(m.innerWidth)
 }
 
 // currentRole re-reads the authenticated user's access level from the database
