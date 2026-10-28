@@ -252,6 +252,8 @@ func (m *Model) resize(width, height int) {
 	m.userDetail.Width(m.rightWidth + 2)
 	m.userDetail.Height(m.innerHeight + 2)
 
+	// m.userDetail.SetSize(m.rightWidth+2, m.innerHeight+2)
+
 	// Navigator inherits width from inner width
 	m.navigator.Width(m.innerWidth)
 
@@ -631,6 +633,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.userDetail.SetActivity(model.Activity{})
 			m.userDetail.SetCommits(nil)
 		}
+		m.userDetail, _ = m.userDetail.Update(msg)
 	}
 
 	// Tab switching is suppressed while the server config form has unsaved
@@ -836,16 +839,16 @@ func (m Model) View() string {
 	switch m.state {
 	case CreateState:
 		popUpContent = m.userCreationForm.View()
-		popUpWidth = m.userCreationForm.Width
-		popUpHeight = m.userCreationForm.Height
+		popUpWidth = m.rightWidth
+		popUpHeight = int(float32(m.innerHeight) * 2 / 3)
 	case EditState:
 		popUpContent = m.userModificationForm.View()
-		popUpWidth = m.userModificationForm.Width
-		popUpHeight = m.userModificationForm.Height
+		popUpWidth = m.rightWidth
+		popUpHeight = int(float32(m.innerHeight) * 2 / 3)
 	case DeleteState:
 		popUpContent = m.confirmUserDeletionDialog.View()
-		popUpWidth = m.confirmUserDeletionDialog.Width
-		popUpHeight = m.confirmUserDeletionDialog.Height
+		popUpWidth = m.rightWidth
+		popUpHeight = int(float32(m.innerHeight) * 2 / 3)
 	}
 	toInject := strings.Split(popUpStyle.Render(popUpContent), "\n")
 
