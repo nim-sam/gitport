@@ -75,6 +75,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	// }
 	// var cmd tea.Cmd
 	// m.table, cmd = m.table.Update(msg)
+	m.resize()
 	return m, nil
 }
 
@@ -83,17 +84,6 @@ func (m *Model) SetUser(u model.User) { m.user = u }
 
 // SetActivity sets the cumulative activity shown in the top row.
 func (m *Model) SetActivity(a model.Activity) { m.activity = a }
-
-// SetFocused reports whether the panel currently owns keyboard focus, which
-// selects the border colour and whether the commit table handles scroll keys.
-// func (m *Model) SetFocused(f bool) {
-// 	m.focused = f
-// 	if f {
-// 		m.table.Focus()
-// 	} else {
-// 		m.table.Blur()
-// 	}
-// }
 
 // SetCommits replaces the commit table with commits authored by the selected
 // user, newest first. At most commitLimit rows are shown.
@@ -124,11 +114,8 @@ func (m *Model) SetCommits(commits []model.Commit) {
 	m.table.GotoTop()
 }
 
-// SetSize gives the panel its total footprint, border included.
-func (m *Model) SetSize(width, height int) {
-	m.width = width
-	m.height = height
-
+// Gives panel its total footprint, border included
+func (m *Model) resize() {
 	inner := m.innerWidth()
 	cols := m.table.Columns()
 	if len(cols) == 3 {
@@ -146,12 +133,6 @@ func (m *Model) SetSize(width, height int) {
 }
 
 func (m Model) View() string {
-
-	// sectionTitleStyle := lipgloss.NewStyle().
-	// 	Width(m.width - 2).
-	// 	AlignHorizontal(lipgloss.Center).
-	// 	Italic(true).
-	// 	Foreground(ui.Palette.FgMuted)
 
 	nameTitleStyle := lipgloss.NewStyle().
 		Width(m.width - 2).
@@ -206,34 +187,16 @@ func (m Model) View() string {
 			[]string{
 				nameTitleStyle.Render(m.user.Name),
 			},
-			// []string{
-			// 	sectionTitleStyle.Render("Activity"),
-			// },
 			[]string{
 				m.activityRow(),
 			},
-			// []string{
-			// 	sectionTitleStyle.Render("Latest Commit"),
-			// },
 			[]string{
 				mostRecentCommitView,
 			},
-			// []string{
-			// 	sectionTitleStyle.Render("History"),
-			// },
 			[]string{
 				tableContainerStyle.Render(m.table.View()),
-				// m.table.View(),
 			},
 		)
-
-	// if m.focused {
-	// 	contentContainer = contentContainer.
-	// 		BorderStyle(
-	// 			lipgloss.NewStyle().
-	// 				Foreground(ui.Palette.SelectedBorder),
-	// 		)
-	// }
 
 	return contentContainer.Render()
 }
