@@ -87,30 +87,26 @@ type Model struct {
 }
 
 // Dimension setters
-func (m *Model) Width(width int)   { m.outerWidth = width }
-func (m *Model) Height(height int) { m.outerHeight = height }
+func (m *Model) Width(width int) {
+	m.outerWidth = width
+
+	m.innerWidth = max(m.outerWidth-tableBorderCols, minStatWidth*3)
+	m.width = m.innerWidth - yGutter - 2*graphPadX
+	m.rebuild()
+}
+func (m *Model) Height(height int) {
+	m.outerHeight = height
+
+	m.midHeight = max(m.outerHeight-tableBorderRows-titleRows-statsRows, minChartHeight+xTitleRows)
+	m.height = max(min(chartHeight, m.midHeight-xTitleRows), minChartHeight)
+	m.rebuild()
+}
 
 func New(commits []model.Commit) Model {
 	m := Model{commits: commits}
 	m.Height(defaultOuterHeight)
 	m.Width(defaultOuterWidth)
 	return m
-}
-
-// SetSize sets the OUTER size of the widget and derives the chart size from
-// it. The ntcharts model is fixed-size, so it is rebuilt.
-func (m *Model) resize() {
-
-	m.innerWidth = max(m.outerWidth-tableBorderCols, minStatWidth*3)
-
-	// Rows left for the middle table row once the title, stats and borders
-	// have taken theirs.
-	m.midHeight = max(m.outerHeight-tableBorderRows-titleRows-statsRows, minChartHeight+xTitleRows)
-
-	m.width = m.innerWidth - yGutter - 2*graphPadX
-	m.height = max(min(chartHeight, m.midHeight-xTitleRows), minChartHeight)
-
-	m.rebuild()
 }
 
 // SetCommits replaces the data, e.g. after the repo gets new commits.
@@ -295,7 +291,6 @@ func (m Model) statsView() string {
 func (m Model) Init() tea.Cmd { return nil }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	m.resize()
 	return m, nil
 }
 
